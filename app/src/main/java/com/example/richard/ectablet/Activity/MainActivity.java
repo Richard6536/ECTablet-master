@@ -10,11 +10,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 
+import com.example.richard.ectablet.Clases.ConnectionController;
+import com.example.richard.ectablet.Clases.ControllerActivity;
 import com.example.richard.ectablet.R;
 import com.google.android.material.bottomnavigation.BottomNavigationMenuView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -26,6 +32,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Environment;
 import android.os.PowerManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -55,22 +62,38 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.suke.widget.SwitchButton;
 
-import org.json.JSONArray;
+import jxl.Cell;
+import jxl.Sheet;
+import jxl.Workbook;
+import jxl.WorkbookSettings;
+import jxl.read.biff.BiffException;
 
+import java.io.File;
+import java.io.IOException;
+
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.text.DecimalFormat;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
+import static android.content.ContentValues.TAG;
 
 public class MainActivity extends AppCompatActivity{
 
     private static final int DISCOVERABLE_REQUEST_CODE = 0x1;
+    //BroadcastReceiver broadcastReceiver;
+
+    public Intent locationIntent;
 
     HideStatusBarNavigation hideStatusBarNavigation = new HideStatusBarNavigation();
     public View mContentView;
     SessionManager sessionController;
+
+    public ImageView imgViewGPS, imgViewWifi;
 
     final MapFragment mapFragment = new MapFragment();
     final BatteryFragment batteryFragment = new BatteryFragment();
@@ -78,11 +101,13 @@ public class MainActivity extends AppCompatActivity{
     final FragmentManager fm = getSupportFragmentManager();
     Fragment active = mapFragment;
 
-    public TextView kmVelText, txtPatente;
+    public TextView kmVelText, txtPatente, txtRecorridoRuta, tiempoRecorridoPorRuta, txtViewGPS, txtViewWifi, txtKMTotales;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        ControllerActivity.activiyAbiertaActual = this;
 
         //Mapbox Access token
         Mapbox.getInstance(getApplicationContext(), getString(R.string.access_token));
@@ -99,12 +124,24 @@ public class MainActivity extends AppCompatActivity{
 
         kmVelText = (TextView) findViewById(R.id.velocidad_km_text);
         txtPatente = (TextView) findViewById(R.id.txtPatente);
+        txtKMTotales = (TextView) findViewById(R.id.txtKMTotales);
+
+        txtRecorridoRuta = (TextView) findViewById(R.id.txtKmtRecorridosPorRuta);
+        tiempoRecorridoPorRuta = (TextView) findViewById(R.id.tiempoRecorridoPorRuta);
+
+        imgViewGPS = (ImageView)findViewById(R.id.imgViewGPS);
+        txtViewGPS = (TextView) findViewById(R.id.txtViewGPS);
+
+        imgViewWifi = (ImageView)findViewById(R.id.imgViewWifi);
+        txtViewWifi = (TextView) findViewById(R.id.txtViewWifi);
 
         LinearLayout lLayoutCerrarSesion = (LinearLayout)findViewById(R.id.lLayoutCerrarSesion);
         lLayoutCerrarSesion.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //detenerServicios();
                 sessionController.logoutUser();
+                finish();
             }
         });
 
@@ -144,9 +181,10 @@ public class MainActivity extends AppCompatActivity{
                 mMessageLocationReceiver, new IntentFilter("intentKey2"));
 
         //Se solicitan permisos al usuario para hacer uso del Bluetooth
-        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-        startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
+
+        //Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        //discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+        //startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
     }
 
     private void AddFragmentsToBeginTransaction(){
@@ -226,18 +264,36 @@ public class MainActivity extends AppCompatActivity{
 
         hideStatusBarNavigation.hideUI(mContentView, getSupportActionBar());
 
-        Intent locationIntent = new Intent(getBaseContext(), LocationService.class);
+        locationIntent = new Intent(MainActivity.this, LocationService.class);
         startService(locationIntent);
+
+        IntentFilter filter = new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION);
+        filter.addAction(Intent.ACTION_PROVIDER_CHANGED);
+        registerReceiver(locationSwitchStateReceiver, filter);
+
+        try{
+            registerReceiver(networkStateReceiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
+        }catch (Exception e){
+            // already registered
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        unregisterReceiver(locationSwitchStateReceiver);
+        try{
+            unregisterReceiver(networkStateReceiver);
+        }catch (Exception e){
+            // already registered
+        }
     }
-    @Override
-    protected void onPause() {
-        super.onPause();
+
+    public void detenerServicios(){
+        if(locationIntent != null)
+            stopService(locationIntent);
     }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -249,7 +305,7 @@ public class MainActivity extends AppCompatActivity{
     @Override
     public void onDestroy() {
         super.onDestroy();
-
+        detenerServicios();
     }
 
     @Override
@@ -272,6 +328,7 @@ public class MainActivity extends AppCompatActivity{
 
             String voltaje = intent.getStringExtra("VOLTAJE");
             String corriente = intent.getStringExtra("CORRIENTE");
+
             String estimacionsompa = intent.getStringExtra("ESTIMACIONSOMPA");
             String confintervalsompa1 = intent.getStringExtra("CONFINTERVALSOMPA1");
             String confintervalsompa2 = intent.getStringExtra("CONFINTERVALSOMPA2");
@@ -298,7 +355,131 @@ public class MainActivity extends AppCompatActivity{
         @Override
         public void onReceive(Context context, Intent intent) {
             String velocidad = intent.getStringExtra("VELOCIDAD");
-            kmVelText.setText(velocidad);
+            String distancia = intent.getStringExtra("DISTANCIA");
+            String fecha = intent.getStringExtra("FECHA");
+            try{
+                Double kmDouble = Double.parseDouble(distancia) / 1000;
+
+                String kmRecorridosDecimals =  new DecimalFormat("#.##").format(kmDouble);
+
+                kmVelText.setText(velocidad);
+                txtRecorridoRuta.setText(kmRecorridosDecimals + " km.");
+                tiempoRecorridoPorRuta.setText(fecha);
+            }
+            catch (Exception e){
+
+            }
+
         }
     };
+
+    private BroadcastReceiver locationSwitchStateReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            if (LocationManager.PROVIDERS_CHANGED_ACTION.equals(intent.getAction())) {
+
+                LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+                boolean isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                Log.d("CNT", "Network: " + isNetworkEnabled + " - GPS: " + isGpsEnabled);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+                if (isGpsEnabled || isNetworkEnabled) {
+                    imgViewGPS.setImageResource(R.drawable.ic_gps_on);
+                    params.setMargins(0, 0, 0, 0);
+                    txtViewGPS.setLayoutParams(params);
+                    txtViewGPS.setText("");
+                } else {
+                    imgViewGPS.setImageResource(R.drawable.ic_gps_off);
+                    params.setMargins(0, 0, 20, 0);
+                    txtViewGPS.setLayoutParams(params);
+                    txtViewGPS.setText("El GPS está apagado");
+                }
+            }
+        }
+    };
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    /*
+    private void installListener() {
+
+        if (broadcastReceiver == null) {
+
+            broadcastReceiver = new BroadcastReceiver() {
+
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    Log.d("onRve","Receive");
+                    Bundle extras = intent.getExtras();
+
+                    NetworkInfo info = (NetworkInfo) extras
+                            .getParcelable("networkInfo2");
+
+                    NetworkInfo.State state = info.getState();
+
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+                    if (state == NetworkInfo.State.CONNECTED) {
+                        imgViewWifi.setImageResource(R.drawable.ic_signal_wifi_4_bar_black_24dp);
+                        params.setMargins(0, 0, 0, 0);
+                        txtViewWifi.setLayoutParams(params);
+                        txtViewWifi.setText("");
+
+                    } else {
+                        imgViewWifi.setImageResource(R.drawable.ic_wifi_off);
+                        params.setMargins(0, 0, 20, 0);
+                        txtViewWifi.setLayoutParams(params);
+                        txtViewWifi.setText("La Red está desconectada");
+                    }
+
+                }
+            };
+
+            final IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+            registerReceiver(broadcastReceiver, intentFilter);
+        }
+    }
+    */
+
+    public BroadcastReceiver networkStateReceiver =new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo ni = manager.getActiveNetworkInfo();
+            Log.d("onRve","Receive: " + ni);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+            if(ni != null){
+                Log.d("onRve","NetworkInfo is not null");
+                NetworkInfo.State state = ni.getState();
+                if (state == NetworkInfo.State.CONNECTED) {
+                    imgViewWifi.setImageResource(R.drawable.ic_signal_wifi_4_bar_black_24dp);
+                    params.setMargins(0, 0, 0, 0);
+                    txtViewWifi.setLayoutParams(params);
+                    txtViewWifi.setText("");
+
+                }
+            }
+            else{
+                imgViewWifi.setImageResource(R.drawable.ic_wifi_off);
+                params.setMargins(0, 0, 20, 0);
+                txtViewWifi.setLayoutParams(params);
+                txtViewWifi.setText("La Red está desconectada");
+            }
+        }
+    };
+
+    public void mostrarDatosPantalla(String kmRecorridos){
+
+        String kmRecorridosDecimals =  new DecimalFormat("#.##").format(Double.parseDouble(kmRecorridos));
+        Log.d("KMR", kmRecorridosDecimals);
+        txtKMTotales.setText(kmRecorridosDecimals + " km.");
+    }
 }

@@ -142,7 +142,7 @@ public class MapBoxManager {
     public void DefinirStyle(AutocompleteSupportFragment autoCompleteSupportFragment, Resources recursos, Activity actividad)
     {
         String a = "";
-        mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/zerods/cjkvmr0q606ks2ro0rt0o8wxc"), new Style.OnStyleLoaded() {
+        mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/zerods/cknjd6of817xe17o7vjij0cjr"), new Style.OnStyleLoaded() {
             @Override
             public void onStyleLoaded(@NonNull Style style) {
                 styleMap = style;

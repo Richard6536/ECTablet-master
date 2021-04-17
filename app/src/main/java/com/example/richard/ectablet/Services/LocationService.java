@@ -12,6 +12,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -22,6 +23,7 @@ import android.util.Log;
 
 import com.example.richard.ectablet.Activity.MainActivity;
 import com.example.richard.ectablet.Clases.Almacenamiento;
+import com.example.richard.ectablet.Clases.ControllerActivity;
 import com.example.richard.ectablet.Clases.SessionManager;
 import com.example.richard.ectablet.Clases.Vehiculo;
 
@@ -29,9 +31,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
+
+import jxl.Cell;
+import jxl.Sheet;
+import jxl.Workbook;
+import jxl.read.biff.BiffException;
 
 import static com.android.volley.VolleyLog.TAG;
 
@@ -41,7 +51,11 @@ public class LocationService extends Service {
     LocationListener locationListener = new LocationListener();
     SessionManager sessionController;
 
+    public static Location lastLocation;
+    public float distanciaAcumulada = 0;
+
     String LLAVE, vehiculoId, flotaId, estadoRuta;
+    String fechaInicio = "-";
 
     public LocationService() {
 
@@ -59,6 +73,12 @@ public class LocationService extends Service {
         super.onStartCommand(intent, flags, startId);
 
         return START_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        locationManager.removeUpdates(locationListener);
     }
 
     @Override
@@ -107,6 +127,7 @@ public class LocationService extends Service {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener);
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, locationListener);
 
+            new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
         }
         catch (Exception e)
         {
@@ -161,6 +182,7 @@ public class LocationService extends Service {
             Log.d("VLCD", location.getLatitude() + " - " +location.getLongitude());
 
             if(rutaNueva == true){
+                fechaInicio = FormatDate();
                 datosVehiculo.put("Inicio", rutaNueva);
                 sessionController.levantarSesion("", 0, 0, "", "false");
             }
@@ -177,7 +199,11 @@ public class LocationService extends Service {
             //Enviar datos al webservice
             new Vehiculo.ActualizarDatos().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ja.toString(), vehiculoId, LLAVE, flotaId);
 
-            sendMessageToActivity(velocidadKm);
+            if(lastLocation != location) {
+                distanciaEnMetros(location);
+            }
+
+            sendMessageToActivity(velocidadKm, distanciaAcumulada, fechaInicio);
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -258,13 +284,127 @@ public class LocationService extends Service {
         return fecha;
     }
 
-    private void sendMessageToActivity(int velocidad) {
+    public void distanciaEnMetros(Location location){
+
+        if(lastLocation == null)
+            lastLocation = location;
+
+        Location loc1 = new Location("");
+
+        loc1.setLatitude(lastLocation.getLatitude());
+        loc1.setLongitude(lastLocation.getLongitude());
+
+        Location loc2 = new Location("");
+        loc2.setLatitude(location.getLatitude());
+        loc2.setLongitude(location.getLongitude());
+
+        distanciaAcumulada += loc1.distanceTo(loc2);
+
+        lastLocation = location;
+    }
+
+    private void sendMessageToActivity(int velocidad, float distanciaAcumulada, String fecha) {
 
         Log.d("VLCD", velocidad+"");
 
         Intent intent = new Intent("intentKey2");
         // You can also include some extra data.
         intent.putExtra("VELOCIDAD", velocidad+"");
+        intent.putExtra("DISTANCIA", distanciaAcumulada+"");
+
+        String[] splFecha = fecha.split(" ");
+        String hora = "";
+
+        if(splFecha.length == 2)
+            hora = splFecha[1];
+
+        intent.putExtra("FECHA", hora);
+
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+
+    public static class ActualizarDatosEstadisticas extends AsyncTask<String,String, JSONObject>
+    {
+
+        @Override
+        protected JSONObject doInBackground(String... parametros) {
+
+            String[][] result = null;
+
+            File root = new File(Environment.getExternalStorageDirectory(), "Android/data/com.stapp.ae.android.data");
+            String excelFile = "datos_raspy_to_database.xls";
+
+            Workbook workbook = null;
+
+            JSONObject datos = new JSONObject();
+
+            try {
+                workbook = Workbook.getWorkbook(new File(root, excelFile));
+
+                Sheet sheet = workbook.getSheet(0);
+                int rowCount = sheet.getRows();
+
+                for (int i = 1; i < rowCount; i++) {
+                    Cell[] row = sheet.getRow(i);
+
+                    String corriente = row[0].getContents();
+                    String voltaje = row[1].getContents();
+
+                    Intent intent = new Intent("intentKey");
+                    // You can also include some extra data.
+                    intent.putExtra("VOLTAJE", voltaje);
+                    intent.putExtra("CORRIENTE",  corriente);
+
+                    intent.putExtra("ESTIMACIONSOMPA", "0");
+                    intent.putExtra("CONFINTERVALSOMPA1", "0");
+                    intent.putExtra("CONFINTERVALSOMPA2", "0");
+                    intent.putExtra("FECHA", "0");
+
+                    LocalBroadcastManager.getInstance(ControllerActivity.activiyAbiertaActual).sendBroadcast(intent);
+
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(1500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                String voltaje = parametros[0];
+                String corriente = parametros[1];
+
+
+                try {
+
+                    datos.put("voltaje", voltaje);
+                    datos.put("corriente", corriente);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                return datos;
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (BiffException e) {
+                e.printStackTrace();
+            }
+
+            try {
+
+                datos.put("voltaje", 0);
+                datos.put("corriente", 0);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return datos;
+        }
+
+        protected void onPostExecute(JSONObject respuestaOdata) {
+            new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.richard.ectablet.Fragments.d;
 
+import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
@@ -37,9 +38,16 @@ import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.github.mikephil.charting.utils.Utils;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Iterator;
+
+import static android.content.ContentValues.TAG;
 
 public class StatsFragment extends Fragment {
     LineChart mChart, mChartCorriente, mChartRin;
@@ -53,11 +61,11 @@ public class StatsFragment extends Fragment {
 
         mChart = view.findViewById(R.id.chart);
         mChartCorriente = view.findViewById(R.id.chartCorriente);
-        mChartRin = view.findViewById(R.id.chartRin);
+        //mChartRin = view.findViewById(R.id.chartRin);
 
         startChart();
         startChartCorriente();
-        startChartRin();
+        //startChartRin();
 
         return view;
     }
@@ -358,7 +366,7 @@ public class StatsFragment extends Fragment {
         entryVoltaje(voltaje);
         entryCorriente(corriente);
 
-        entryEstimacionRin(estimacionSompa, confIntervalSompa1, confIntervalSompa2);
+        //entryEstimacionRin(estimacionSompa, confIntervalSompa1, confIntervalSompa2);
         //entryConfIntervalRin1(corriente);
     }
 
@@ -568,4 +576,5 @@ public class StatsFragment extends Fragment {
 
         addEntry(voltaje, corriente, estimacionSompa, confIntervalSompa1, confIntervalSompa2, valueFecha);
     }
+
 }

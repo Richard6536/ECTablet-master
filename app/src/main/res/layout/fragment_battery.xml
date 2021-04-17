@@ -5,15 +5,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".Fragments.d.BatteryFragment"
-    android:background="#545454">
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="250dp"
-        android:layout_marginTop="30dp"
-        android:background="#686868"
-        tools:ignore="MissingConstraints">
+    android:background="@color/colorPrimary">
 
-    </RelativeLayout>
+    <View
+        android:id="@+id/view2"
+        android:layout_width="wrap_content"
+        android:layout_height="500dp"
+        android:background="@drawable/ic_wave_battery_2"
+        app:layout_constraintBottom_toBottomOf="parent" />
+    <View
+        android:id="@+id/view3"
+        android:layout_width="wrap_content"
+        android:layout_height="300dp"
+        android:background="@drawable/ic_wave_battery_3"
+        app:layout_constraintBottom_toBottomOf="parent" />
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"

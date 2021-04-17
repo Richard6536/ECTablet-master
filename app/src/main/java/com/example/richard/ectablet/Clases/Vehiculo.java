@@ -3,6 +3,8 @@ package com.example.richard.ectablet.Clases;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.example.richard.ectablet.Activity.MainActivity;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -126,8 +128,8 @@ public class Vehiculo {
         protected void onPostExecute(JSONObject respuestaOdata) {
             try
             {
-
                 String tipoRespuesta = respuestaOdata.getString("TipoRespuesta");
+                String kilometrosTotales = respuestaOdata.getString("KilometrosTotalesAPP");
                 String mensaje = respuestaOdata.getString("Mensaje");
                 String llave = respuestaOdata.getString("LLAVE");
 
@@ -144,6 +146,9 @@ public class Vehiculo {
                 if(tipoRespuesta.equals("OK"))
                 {
                     listaDatosAEnviar = new JSONArray(new ArrayList<String>());
+                    Log.d("KMR", kilometrosTotales);
+                    MainActivity actividadPrincipal = (MainActivity)ControllerActivity.activiyAbiertaActual;
+                    actividadPrincipal.mostrarDatosPantalla(kilometrosTotales);
                 }
                 else if(tipoRespuesta.equals("ERROR"))
                 {

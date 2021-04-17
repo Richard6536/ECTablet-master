@@ -6,7 +6,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@drawable/gradient_mapview">
 
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -28,37 +27,65 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="vertical">
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="60px"
                 android:background="@color/colorPrimary"
                 android:orientation="horizontal">
-                <LinearLayout
-                    android:layout_width="0dp"
+                <ImageView
+                    android:id="@+id/imgViewGPS"
+                    android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:layout_weight="2">
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:layout_weight="0.9">
-                        <TextClock
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:format12Hour="hh:mm:ss a"
-                            android:gravity="center"
-                            android:paddingTop="5dp"
-                            android:layout_marginLeft="10dp"
-                            android:textSize="22dp"
-                            android:textColor="#fff"/>
-                    </LinearLayout>
+                    android:paddingTop="11px"
+                    android:paddingBottom="11px"
+                    android:paddingLeft="7px"
+                    android:paddingRight="7px"
+                    android:layout_alignParentLeft="true"
+                    android:src="@drawable/ic_gps_on"/>
+                <TextView
+                    android:id="@+id/txtViewGPS"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="#ffff"
+                    android:text=""/>
+                <ImageView
+                    android:id="@+id/imgViewWifi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:paddingTop="11px"
+                    android:paddingBottom="11px"
+                    android:paddingLeft="7px"
+                    android:paddingRight="7px"
+                    android:layout_alignParentLeft="true"
+                    android:src="@drawable/ic_signal_wifi_4_bar_black_24dp"/>
 
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1">
-
-                    </LinearLayout>
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/txtViewWifi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="#ffff"
+                    android:text=""/>
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:paddingTop="11px"
+                    android:paddingBottom="11px"
+                    android:paddingLeft="7px"
+                    android:paddingRight="7px"
+                    android:layout_alignParentLeft="true"
+                    android:src="@drawable/ic_bluetooth_connected_black_24dp"/>
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:paddingTop="11px"
+                    android:paddingBottom="11px"
+                    android:paddingLeft="7px"
+                    android:paddingRight="7px"
+                    android:layout_alignParentLeft="true"
+                    android:src="@drawable/ic_cloud_upload_black_24dp"/>
             </LinearLayout>
 
             <FrameLayout
@@ -69,10 +96,7 @@
                 android:layout_alignParentBottom="true"
                 app:layout_behavior="@string/appbar_scrolling_view_behavior" />
         </LinearLayout>
-
-
     </LinearLayout>
-
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
@@ -80,16 +104,13 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="0dp"
         android:layout_marginEnd="0dp"
-        android:background="?android:attr/windowBackground"
+        android:background="@drawable/nav_background_curved"
         app:menu="@menu/bottom_nav_menu"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:itemBackground="@color/colorPrimary"
         app:itemIconTint="@android:color/white"
         app:itemTextColor="@android:color/white" />
-
-
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/floatingActionButton"
@@ -99,7 +120,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginBottom="20px"
         android:layout_marginRight="20px"
-        android:backgroundTint="#303030"
+        android:backgroundTint="@color/colorPrimary"
         android:layout_gravity="end|bottom"
         android:clickable="true"
         app:borderWidth="0dp"

@@ -19,6 +19,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Design.NoActionBar">
+
         <activity android:name=".Activity.LoginV2Activity"
             android:launchMode = "singleInstance">
             <intent-filter>
@@ -34,7 +35,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
         <service
             android:name=".Services.BluetoothReceiveService"
             android:enabled="true"
@@ -74,7 +74,8 @@
         <activity android:name=".Activity.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
+                <action android:name="android.net.wifi.WIFI_STATE_CHANGED"
+                    android:enabled="true"/>
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>

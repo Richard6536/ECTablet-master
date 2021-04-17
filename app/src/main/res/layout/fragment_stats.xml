@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#545454"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/colorPrimary"
     tools:context=".Fragments.d.StatsFragment">
-
+    <View
+        android:id="@+id/view3"
+        android:layout_width="wrap_content"
+        android:layout_height="300dp"
+        android:background="@drawable/ic_wave_battery_3"
+        app:layout_constraintBottom_toBottomOf="parent" />
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        tools:ignore="MissingConstraints">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -24,7 +31,7 @@
                 android:textSize="25dp"
                 android:layout_marginLeft="100px"
                 android:layout_marginBottom="20dp"
-                android:text="Voltaje Máximo: 58.62"/>
+                android:text="Voltaje"/>
 
             <View
                 android:layout_width="match_parent"
@@ -44,20 +51,22 @@
                 android:textSize="25dp"
                 android:layout_marginLeft="100px"
                 android:layout_marginBottom="20dp"
-                android:text="Corriente Máxima: 24.04"/>
+                android:text="Corriente"/>
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/chartCorriente"
                 android:layout_width="match_parent"
                 android:layout_height="600dp"
-                android:layout_marginBottom="90dp"/>
+                android:layout_marginBottom="150dp"/>
 
-            <TextView
+            <!--
+             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="25dp"
                 android:layout_marginLeft="100px"
                 android:layout_marginBottom="20dp"
                 android:text="RIN"/>
+
             <com.github.mikephil.charting.charts.LineChart
                 android:id="@+id/chartRin"
                 android:layout_width="match_parent"
@@ -70,8 +79,9 @@
                 android:textSize="25dp"
                 android:layout_marginLeft="100px"
                 android:text=""/>
+            -->
         </LinearLayout>
 
     </ScrollView>
 
-</FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
