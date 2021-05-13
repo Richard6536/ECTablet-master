@@ -64,8 +64,13 @@ public class Vehiculo {
 
             } catch (JSONException e) {
                 e.printStackTrace();
-                Almacenamiento.crearRegistroErroresPosicion("ErrorJSonPosicion", listaDatosAEnviar);
-                listaDatosAEnviar = new JSONArray(new ArrayList<String>());
+                try{
+                    Almacenamiento.crearRegistroErroresPosicion("ErrorJSonPosicion", listaDatosAEnviar);
+                    listaDatosAEnviar = new JSONArray(new ArrayList<String>());
+                }
+                catch (Exception a){
+
+                }
             }
 
             //Almacenamiento.crearRegistroErroresPosicion("Entro_AsyncTask", stringToJsonArr);
@@ -171,7 +176,12 @@ public class Vehiculo {
             {
                 Log.e(TAG, "onPostExecute: "+e.getMessage());
                 //Almacenamiento.crearRegistroErroresPosicion("catch mensaje o null", listaDatosAEnviar);
-                Almacenamiento.EscribirEnArchivo(listaDatosAEnviar);
+                try {
+                    Almacenamiento.EscribirEnArchivo(listaDatosAEnviar);
+                }
+                catch (Exception a){
+
+                }
             }
         }
     }

@@ -5,7 +5,7 @@ android {
     buildToolsVersion '29.0.2'
     defaultConfig {
         applicationId "com.example.richard.ectablet"
-        minSdkVersion 21
+        minSdkVersion 25
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -49,5 +49,11 @@ dependencies {
     implementation 'com.mapbox.mapboxsdk:mapbox-android-plugin-markerview-v7:0.2.0'
 
     implementation 'com.github.zcweng:switch-button:0.0.3@aar'
-    implementation 'net.sourceforge.jexcelapi:jxl:2.6.12'
+    //implementation 'net.sourceforge.jexcelapi:jxl:2.6.12'
+
+    implementation 'com.github.pires:obd-java-api:1.0'
+
+    implementation 'com.mikhaellopez:circularprogressbar:3.0.3'
+
+    implementation 'com.android.support:multidex:1.0.1'
 }

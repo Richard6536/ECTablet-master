@@ -107,6 +107,11 @@ public class MapBoxManager {
 
     public void SetMapBoxMap(MapboxMap mbMap){
         mapboxMap = mbMap;
+
+        mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                .target(new LatLng(-40.5804984,-73.1153157))
+                .zoom(10)
+                .build());
     }
 
     public Style getStyleMap(){
@@ -137,6 +142,7 @@ public class MapBoxManager {
         mapView = (MapView) view.findViewById(R.id.mapView);
         mapView.onCreate(bundle);
         mapView.getMapAsync(contexto);
+
     }
 
     public void DefinirStyle(AutocompleteSupportFragment autoCompleteSupportFragment, Resources recursos, Activity actividad)

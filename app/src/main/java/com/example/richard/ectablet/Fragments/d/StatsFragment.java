@@ -72,17 +72,12 @@ public class StatsFragment extends Fragment {
 
     public void startChart(){
 
-        /*
-        mChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+        /*mChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
             @Override
-            public void onValueSelected(Entry e, Highlight h) {
-
-            }
+            public void onValueSelected(Entry e, Highlight h) {}
 
             @Override
-            public void onNothingSelected() {
-
-            }
+            public void onNothingSelected() {}
         });*/
 
         // enable description text
@@ -123,7 +118,7 @@ public class StatsFragment extends Fragment {
 
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.setTextColor(Color.WHITE);
-        leftAxis.setAxisMaximum(80f);
+        leftAxis.setAxisMaximum(600f);
         leftAxis.setAxisMinimum(0f);
         leftAxis.setDrawGridLines(true);
 
@@ -220,8 +215,8 @@ public class StatsFragment extends Fragment {
 
         YAxis leftAxis = mChartCorriente.getAxisLeft();
         leftAxis.setTextColor(Color.WHITE);
-        leftAxis.setAxisMaximum(30f);
-        leftAxis.setAxisMinimum(0f);
+        leftAxis.setAxisMaximum(100f);
+        leftAxis.setAxisMinimum(-100f);
         leftAxis.setDrawGridLines(true);
 
         YAxis rightAxis = mChartCorriente.getAxisRight();
@@ -362,7 +357,7 @@ public class StatsFragment extends Fragment {
         */
     }
 
-    private void addEntry(float voltaje, float corriente, float estimacionSompa, float confIntervalSompa1, float confIntervalSompa2, String fecha) {
+    private void addEntry(float voltaje, float corriente) {
         entryVoltaje(voltaje);
         entryCorriente(corriente);
 
@@ -562,19 +557,11 @@ public class StatsFragment extends Fragment {
     public void putArguments(Bundle args){
         String valueVoltaje = args.getString("VOLTAJE");
         String valueCorriente = args.getString("CORRIENTE");
-        String valueFecha = args.getString("FECHA");
-        String valueestimacionsompa = args.getString("ESTIMACIONSOMPA");
-        String valueconfintervalsompa1 = args.getString("CONFINTERVALSOMPA1");
-        String valueconfintervalsompa2 = args.getString("CONFINTERVALSOMPA2");
 
         float voltaje = Float.parseFloat(valueVoltaje);
         float corriente = Float.parseFloat(valueCorriente);
 
-        float estimacionSompa = Float.parseFloat(valueestimacionsompa);
-        float confIntervalSompa1 = Float.parseFloat(valueconfintervalsompa1);
-        float confIntervalSompa2 = Float.parseFloat(valueconfintervalsompa2);
-
-        addEntry(voltaje, corriente, estimacionSompa, confIntervalSompa1, confIntervalSompa2, valueFecha);
+        addEntry(voltaje, corriente);
     }
 
 }

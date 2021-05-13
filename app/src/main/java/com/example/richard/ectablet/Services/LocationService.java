@@ -18,6 +18,19 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 
 import android.util.Log;
 
@@ -27,31 +40,48 @@ import com.example.richard.ectablet.Clases.ControllerActivity;
 import com.example.richard.ectablet.Clases.SessionManager;
 import com.example.richard.ectablet.Clases.Vehiculo;
 
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
-
-import jxl.Cell;
-import jxl.Sheet;
-import jxl.Workbook;
-import jxl.read.biff.BiffException;
 
 import static com.android.volley.VolleyLog.TAG;
 
 public class LocationService extends Service {
 
+    Timer timer = new Timer();
+
     LocationManager locationManager;
     LocationListener locationListener = new LocationListener();
     SessionManager sessionController;
 
+    public String dateTracklogs = "--";
+
     public static Location lastLocation;
+    public static Location updatedLocation;
+
     public float distanciaAcumulada = 0;
 
     String LLAVE, vehiculoId, flotaId, estadoRuta;
@@ -78,7 +108,13 @@ public class LocationService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        locationManager.removeUpdates(locationListener);
+
+        try{
+            timer.cancel();
+            locationManager.removeUpdates(locationListener);
+        }
+        catch (Exception e){}
+
     }
 
     @Override
@@ -124,10 +160,12 @@ public class LocationService extends Service {
                 return;
             }
 
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
-            new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+            //new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+            //new OBDLogs().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+            new writeOBD2ExcelAsync().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
         }
         catch (Exception e)
         {
@@ -140,7 +178,7 @@ public class LocationService extends Service {
 
         @Override
         public void onLocationChanged(Location location) {
-            float accuracyPosicion = location.getAccuracy();
+            //float accuracyPosicion = location.getAccuracy();
             Log.e("POSITION_TAG", "lnlat: " + location.getLatitude() + "," + location.getLongitude());
             enviarDatosVehiculo(location);
 
@@ -164,6 +202,8 @@ public class LocationService extends Service {
 
     public void enviarDatosVehiculo(Location location){
 
+        updatedLocation = location;
+
         JSONObject datosVehiculo = new JSONObject();
 
         HashMap<String, String> datos_usuario = sessionController.obtenerDatosUsuario();
@@ -179,13 +219,13 @@ public class LocationService extends Service {
             datosVehiculo.put("Latitud", location.getLatitude());
             datosVehiculo.put("Longitud", location.getLongitude());
 
-            Log.d("VLCD", location.getLatitude() + " - " +location.getLongitude());
-
             if(rutaNueva == true){
                 fechaInicio = FormatDate();
                 datosVehiculo.put("Inicio", rutaNueva);
                 sessionController.levantarSesion("", 0, 0, "", "false");
             }
+
+            //readExcelOBD2(location);
 
             datosVehiculo.put("GPSOffBool",false);
             datosVehiculo.put("Altitud", location.getAltitude());
@@ -203,7 +243,7 @@ public class LocationService extends Service {
                 distanciaEnMetros(location);
             }
 
-            sendMessageToActivity(velocidadKm, distanciaAcumulada, fechaInicio);
+            sendMessageToActivity(velocidadKm, distanciaAcumulada, fechaInicio, rutaNueva);
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -303,7 +343,7 @@ public class LocationService extends Service {
         lastLocation = location;
     }
 
-    private void sendMessageToActivity(int velocidad, float distanciaAcumulada, String fecha) {
+    private void sendMessageToActivity(int velocidad, float distanciaAcumulada, String fecha, boolean rutaNueva) {
 
         Log.d("VLCD", velocidad+"");
 
@@ -319,92 +359,235 @@ public class LocationService extends Service {
             hora = splFecha[1];
 
         intent.putExtra("FECHA", hora);
+        intent.putExtra("RUTA_NUEVA", rutaNueva);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+    public void readExcelOBD2(Location location){
 
-    public static class ActualizarDatosEstadisticas extends AsyncTask<String,String, JSONObject>
+        File actualFile = null;
+        Date actualLastModDate = null;
+
+        String currentDate = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
+
+        String path = Environment.getExternalStorageDirectory().toString() + "/torqueLogs/";
+        File directory = new File(path);
+        File[] files = directory.listFiles();
+
+        if (files != null) {
+
+                for (int i = 0; i < files.length; i++) {
+
+                Date lastModDate = new Date(files[i].lastModified());
+                Date dateRest10Min = new Date(System.currentTimeMillis() - 600 * 1000);
+                if(lastModDate.after(dateRest10Min)){
+                    if (actualFile != null) {
+
+                        if (lastModDate.after(actualLastModDate)) {
+                            actualFile = files[i];
+                            actualLastModDate = new Date(files[i].lastModified());
+                        }
+                    } else {
+                        actualFile = files[i];
+                        actualLastModDate = new Date(files[i].lastModified());
+                    }
+                }
+            }
+        }
+
+        if(actualFile != null) {
+            try {
+
+                BufferedReader br = new BufferedReader(new FileReader(path + actualFile.getName()));
+                String line = br.readLine();
+                String lastLine = "";
+
+                while ((line = br.readLine()) != null) {
+                    // Doing some actions
+
+                    // Overwrite lastLine each time
+                    lastLine = line;
+                }
+
+                String[] items = lastLine.split(",");
+                double batteryCurrentValue = Double.parseDouble(items[12]);
+                double batteryVoltageValue = Double.parseDouble(items[13]);
+                double cumulativeCharValue = Double.parseDouble(items[14]);
+                double cumulativeDiscValue = Double.parseDouble(items[15]);
+                double driveMotorSpd1Value = Double.parseDouble(items[16]);
+                double stateOfChargedValue = Double.parseDouble(items[17]);
+                double stateOfHealthBValue = Double.parseDouble(items[18]);
+
+                Object[][] carData = {
+                        {
+                                currentDate,
+                                batteryCurrentValue,
+                                batteryVoltageValue,
+                                cumulativeCharValue,
+                                cumulativeDiscValue,
+                                driveMotorSpd1Value,
+                                stateOfChargedValue,
+                                stateOfHealthBValue,
+                                location.getLatitude(),
+                                location.getLongitude(),
+                        }
+                };
+
+                createExcelOBD2(carData);
+                sendOBD2ToActivity(batteryCurrentValue, batteryVoltageValue, cumulativeCharValue,
+                        cumulativeDiscValue, driveMotorSpd1Value, stateOfChargedValue, stateOfHealthBValue);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void readCSV(File file) throws IOException {
+        try{
+            String path = Environment.getExternalStorageDirectory().toString();
+            BufferedReader br = new BufferedReader(new FileReader(path + "/torqueLogs/" + file.getName()));
+
+            String line = br.readLine();
+            for (int rows=0; line != null; rows++) {
+                String[] items = line.split(",");
+                String item = items[1];
+                //read next line
+                line = br.readLine();
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
+    public double checkNull(Cell cell){
+        if(cell != null)
+            return cell.getNumericCellValue();
+        return 0;
+    }
+
+    public int getLastRowContent(Sheet sheet){
+
+        int cont = 0;
+        for(Row row : sheet){
+            if (row.getCell(12) == null || row.getCell(12).getCellType() == Cell.CELL_TYPE_BLANK) break;
+            cont++;
+        }
+
+        if(cont > 0) cont--;
+        return cont;
+    }
+
+    public void createExcelOBD2(Object[][] carData) throws IOException {
+
+        String path = Environment.getExternalStorageDirectory().toString();
+
+        String fileName = "tracklog_"+dateTracklogs+".xlsx";
+
+        File f = new File(path, fileName);
+
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        XSSFSheet sheet = null;
+
+        if(f.isFile()){
+            FileInputStream inputStream = new FileInputStream(new File(path + "/" + f.getName()));
+            workbook = new XSSFWorkbook(inputStream);
+            sheet = workbook.getSheetAt(0);
+            sheet.setDefaultColumnWidth(30);
+
+            Row headRow = sheet.createRow(0);
+
+            headRow.createCell(0).setCellValue((String) "Fecha");
+            headRow.createCell(1).setCellValue((String) "Battery Current (A)");
+            headRow.createCell(2).setCellValue((String) "Battery DC Voltage (V)");
+            headRow.createCell(3).setCellValue((String) "Cumulative Charge Current (Ah)");
+            headRow.createCell(4).setCellValue((String) "Cumulative Discharge Current (Ah)");
+            headRow.createCell(5).setCellValue((String) "RPM");
+            headRow.createCell(6).setCellValue((String) "State of Charge (SOC)");
+            headRow.createCell(7).setCellValue((String) "State of Health (SOH)");
+            headRow.createCell(8).setCellValue((String) "Latitude");
+            headRow.createCell(9).setCellValue((String) "Longitude");
+
+        }
+        else{
+            sheet = workbook.createSheet("Vehicle data");
+        }
+
+        int rowCount = sheet.getLastRowNum() + 1;
+
+        for (Object[] aCarData : carData) {
+            Row row = sheet.createRow(rowCount);
+
+            int columnCount = 0;
+
+            for (Object field : aCarData) {
+                Cell cell = row.createCell(columnCount);
+                if (field instanceof String) {
+                    cell.setCellValue((String) field);
+                } else if (field instanceof Double) {
+                    cell.setCellValue((Double) field);
+                }
+                ++columnCount;
+            }
+        }
+
+        try (FileOutputStream outputStream = new FileOutputStream(f)) {
+            workbook.write(outputStream);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public class writeOBD2ExcelAsync extends AsyncTask<String,String, JSONObject>
     {
-
         @Override
         protected JSONObject doInBackground(String... parametros) {
 
-            String[][] result = null;
+            int begin = 0;
+            int timeInterval = 1000;
+            dateTracklogs = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
 
-            File root = new File(Environment.getExternalStorageDirectory(), "Android/data/com.stapp.ae.android.data");
-            String excelFile = "datos_raspy_to_database.xls";
-
-            Workbook workbook = null;
-
-            JSONObject datos = new JSONObject();
-
-            try {
-                workbook = Workbook.getWorkbook(new File(root, excelFile));
-
-                Sheet sheet = workbook.getSheet(0);
-                int rowCount = sheet.getRows();
-
-                for (int i = 1; i < rowCount; i++) {
-                    Cell[] row = sheet.getRow(i);
-
-                    String corriente = row[0].getContents();
-                    String voltaje = row[1].getContents();
-
-                    Intent intent = new Intent("intentKey");
-                    // You can also include some extra data.
-                    intent.putExtra("VOLTAJE", voltaje);
-                    intent.putExtra("CORRIENTE",  corriente);
-
-                    intent.putExtra("ESTIMACIONSOMPA", "0");
-                    intent.putExtra("CONFINTERVALSOMPA1", "0");
-                    intent.putExtra("CONFINTERVALSOMPA2", "0");
-                    intent.putExtra("FECHA", "0");
-
-                    LocalBroadcastManager.getInstance(ControllerActivity.activiyAbiertaActual).sendBroadcast(intent);
-
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(1500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    readExcelOBD2(updatedLocation);
                 }
+            }, begin, timeInterval);
 
-                String voltaje = parametros[0];
-                String corriente = parametros[1];
-
-
-                try {
-
-                    datos.put("voltaje", voltaje);
-                    datos.put("corriente", corriente);
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                return datos;
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (BiffException e) {
-                e.printStackTrace();
-            }
-
-            try {
-
-                datos.put("voltaje", 0);
-                datos.put("corriente", 0);
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            return datos;
+            return new JSONObject();
         }
 
         protected void onPostExecute(JSONObject respuestaOdata) {
-            new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
         }
+    }
+
+    private void sendOBD2ToActivity(double batteryCurrentValue, double batteryVoltageValue,
+                                    double cumulativeCharValue, double cumulativeDiscValue,
+                                    double driveMotorSpd1Value, double stateOfChargedValue,
+                                    double stateOfHealthBValue) {
+
+
+        Intent intentKey = new Intent("intentKey");
+        intentKey.putExtra("BATERRYVOLTAGE", new DecimalFormat("#.##").format(batteryVoltageValue)+"");
+        intentKey.putExtra("BATTERYCURRENT", new DecimalFormat("#.##").format(batteryCurrentValue)+"");
+
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intentKey);
+
+        Intent intent = new Intent("intentKeyOBD2");
+        // You can also include some extra data.
+        intent.putExtra("BATTERYCURRENT", new DecimalFormat("#.##").format(batteryCurrentValue)+"");
+        intent.putExtra("BATERRYVOLTAGE", new DecimalFormat("#.#").format(batteryVoltageValue)+"");
+        intent.putExtra("CUMULATIVECHAR", new DecimalFormat("#.#").format(cumulativeCharValue)+"");
+        intent.putExtra("CUMULATIVEDISC", new DecimalFormat("#.#").format(cumulativeDiscValue)+"");
+        intent.putExtra("DRIVEMOTORSPD1", driveMotorSpd1Value+"");
+        intent.putExtra("STATEOFCHARGED", new DecimalFormat("#.#").format(stateOfChargedValue)+"");
+        intent.putExtra("STATEOFHEALTHB", new DecimalFormat("#.#").format(stateOfHealthBValue)+"");
+
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 }

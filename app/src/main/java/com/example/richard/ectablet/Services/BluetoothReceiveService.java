@@ -39,11 +39,6 @@ import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import jxl.Cell;
-import jxl.Sheet;
-import jxl.Workbook;
-import jxl.read.biff.BiffException;
-
 import static android.content.ContentValues.TAG;
 
 public class BluetoothReceiveService extends Service {
@@ -102,7 +97,7 @@ public class BluetoothReceiveService extends Service {
         startForeground(1337, notification);
 
         //new Thread(reader).start();
-        new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+        //new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
     }
 
     private BluetoothSocket socket;
@@ -400,6 +395,7 @@ public class BluetoothReceiveService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+    /*
     public void readExcelFileFromAssets() throws IOException, BiffException, InterruptedException, JSONException {
         String[][] result = null;
 
@@ -490,4 +486,6 @@ public class BluetoothReceiveService extends Service {
             new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
         }
     }
+
+     */
 }

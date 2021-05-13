@@ -18,7 +18,7 @@
                                 <PersistentState>
                                   <option name="values">
                                     <map>
-                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialicons/signal_wifi_off/baseline_signal_wifi_off_24.xml" />
+                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialicons/bluetooth_searching/baseline_bluetooth_searching_24.xml" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -30,8 +30,8 @@
                           <map>
                             <entry key="assetSourceType" value="FILE" />
                             <entry key="color" value="fdfdfe" />
-                            <entry key="outputName" value="ic_wave_battery_4" />
-                            <entry key="sourceFile" value="C:\Users\zerod\Downloads\wave.svg" />
+                            <entry key="outputName" value="ic_square2" />
+                            <entry key="sourceFile" value="C:\Users\zerod\Downloads\square2.svg" />
                           </map>
                         </option>
                       </PersistentState>

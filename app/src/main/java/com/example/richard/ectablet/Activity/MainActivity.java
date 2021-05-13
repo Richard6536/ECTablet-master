@@ -1,30 +1,37 @@
 package com.example.richard.ectablet.Activity;
 
 import android.Manifest;
+import android.animation.ValueAnimator;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 
+import com.example.richard.ectablet.Clases.Almacenamiento;
 import com.example.richard.ectablet.Clases.ConnectionController;
 import com.example.richard.ectablet.Clases.ControllerActivity;
 import com.example.richard.ectablet.R;
+import com.example.richard.ectablet.Services.MyLocationService;
+import com.example.richard.ectablet.Services.OBDService;
 import com.google.android.material.bottomnavigation.BottomNavigationMenuView;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
@@ -48,7 +55,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.richard.ectablet.Clases.ActionBarActivity;
-import com.example.richard.ectablet.Clases.Almacenamiento;
 import com.example.richard.ectablet.Clases.HideStatusBarNavigation;
 import com.example.richard.ectablet.Clases.MapBoxManager;
 import com.example.richard.ectablet.Clases.SessionManager;
@@ -61,12 +67,6 @@ import com.example.richard.ectablet.Services.LocationService;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.suke.widget.SwitchButton;
-
-import jxl.Cell;
-import jxl.Sheet;
-import jxl.Workbook;
-import jxl.WorkbookSettings;
-import jxl.read.biff.BiffException;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,8 +84,7 @@ import static android.content.ContentValues.TAG;
 
 public class MainActivity extends AppCompatActivity{
 
-    private static final int DISCOVERABLE_REQUEST_CODE = 0x1;
-    //BroadcastReceiver broadcastReceiver;
+    private static final int DISCOVERABLE_REQUEST_CODE = 2;
 
     public Intent locationIntent;
 
@@ -101,7 +100,10 @@ public class MainActivity extends AppCompatActivity{
     final FragmentManager fm = getSupportFragmentManager();
     Fragment active = mapFragment;
 
-    public TextView kmVelText, txtPatente, txtRecorridoRuta, tiempoRecorridoPorRuta, txtViewGPS, txtViewWifi, txtKMTotales;
+    public TextView kmVelText, txtPatente, txtRecorridoRuta, tiempoRecorridoPorRuta, txtViewGPS,
+            txtViewWifi, txtKMTotales;
+
+    public LinearLayout txtEnRutaView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,7 +128,11 @@ public class MainActivity extends AppCompatActivity{
         txtPatente = (TextView) findViewById(R.id.txtPatente);
         txtKMTotales = (TextView) findViewById(R.id.txtKMTotales);
 
+        txtEnRutaView = (LinearLayout) findViewById(R.id.txtEnRutaView);
+
         txtRecorridoRuta = (TextView) findViewById(R.id.txtKmtRecorridosPorRuta);
+        txtEnRutaView.setVisibility(View.INVISIBLE);
+
         tiempoRecorridoPorRuta = (TextView) findViewById(R.id.tiempoRecorridoPorRuta);
 
         imgViewGPS = (ImageView)findViewById(R.id.imgViewGPS);
@@ -140,8 +146,30 @@ public class MainActivity extends AppCompatActivity{
             @Override
             public void onClick(View v) {
                 //detenerServicios();
-                sessionController.logoutUser();
-                finish();
+                /*
+                AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
+                builder1.setMessage("Write your message here.");
+                builder1.setCancelable(true);
+
+                builder1.setPositiveButton(
+                        "Sí",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                sessionController.logoutUser();
+                                finish();
+                            }
+                        });
+
+                builder1.setNegativeButton(
+                        "No",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+                AlertDialog alert11 = builder1.create();
+                alert11.show();*/
             }
         });
 
@@ -180,11 +208,26 @@ public class MainActivity extends AppCompatActivity{
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 mMessageLocationReceiver, new IntentFilter("intentKey2"));
 
-        //Se solicitan permisos al usuario para hacer uso del Bluetooth
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                dataOBD2Receiver, new IntentFilter("intentKey_OBD2"));
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                dataKeyOBD2, new IntentFilter("intentKeyOBD2"));
+
+        //Se solicitan permisos al usuario para hacer uso del Bluetooth
         //Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         //discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
         //startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
+
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, DISCOVERABLE_REQUEST_CODE);
+        }
+        else{
+            iniciarServicioOBD2();
+        }
     }
 
     private void AddFragmentsToBeginTransaction(){
@@ -222,7 +265,6 @@ public class MainActivity extends AppCompatActivity{
         */
     }
 
-
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
 
@@ -235,8 +277,21 @@ public class MainActivity extends AppCompatActivity{
                     return true;
 
                 case R.id.action_battery:
-                    fm.beginTransaction().hide(active).show(batteryFragment).commit();
-                    active = batteryFragment;
+
+                    if(active != batteryFragment){
+                        fm.beginTransaction().hide(active).show(batteryFragment).commit();
+                        active = batteryFragment;
+                        batteryFragment.animationCar();
+                        try {
+                            batteryFragment.animationIcons();
+                            batteryFragment.animationTextView(ValueAnimator.ofFloat(0f, 1f), 1500);
+                            batteryFragment.animationViews(ValueAnimator.ofFloat(0f, 1f), 1500);
+
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                     return true;
 
                 case R.id.action_stats:
@@ -294,6 +349,11 @@ public class MainActivity extends AppCompatActivity{
             stopService(locationIntent);
     }
 
+    public void iniciarServicioOBD2(){
+        Intent intent = new Intent(getBaseContext(), OBDService.class);
+        startService(intent);
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -311,13 +371,13 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        //addViewOnUiThread("TrackingFlow ");
-        Log.d("BT","Creating thread to start listening...");
 
-        //Intent intent0 = new Intent(getBaseContext(), LocationService.class);
-        //Intent intent = new Intent(getBaseContext(), BluetoothReceiveService.class);
-        //startService(intent);
-        //startService(intent0);
+        if(resultCode == -1){
+            iniciarServicioOBD2();
+        }
+        else{
+            Log.d("BTRESULT","BT desactivado");
+        }
     }
 
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
@@ -326,22 +386,28 @@ public class MainActivity extends AppCompatActivity{
             //Recibe datos directamente desde el BluetoothReceiveService
             //Se envían a los fragments correspondientes
 
-            String voltaje = intent.getStringExtra("VOLTAJE");
-            String corriente = intent.getStringExtra("CORRIENTE");
+            String voltaje = intent.getStringExtra("BATERRYVOLTAGE");
+            String corriente = intent.getStringExtra("BATTERYCURRENT");
 
-            String estimacionsompa = intent.getStringExtra("ESTIMACIONSOMPA");
-            String confintervalsompa1 = intent.getStringExtra("CONFINTERVALSOMPA1");
-            String confintervalsompa2 = intent.getStringExtra("CONFINTERVALSOMPA2");
-            String fecha = intent.getStringExtra("FbluetoothECHA");
+            double voltFloat = Float.parseFloat(voltaje);
+            double currentFloat = Float.parseFloat(corriente);
+
+            DecimalFormat df = new DecimalFormat("#.#");
+
+            String decimalVolt = "0.0";
+            String currentVolt = "0.0";
+
+            try {
+                decimalVolt = df.format(voltFloat);
+                currentVolt = df.format(currentFloat);
+            }
+            catch (Exception e){
+
+            }
 
             Bundle args = new Bundle();
-            args.putString("VOLTAJE", voltaje);
-            args.putString("CORRIENTE", corriente);
-            args.putString("ESTIMACIONSOMPA", estimacionsompa);
-            args.putString("CONFINTERVALSOMPA1", confintervalsompa1);
-            args.putString("CONFINTERVALSOMPA2", confintervalsompa2);
-
-            args.putString("FECHA", fecha);
+            args.putString("VOLTAJE", decimalVolt);
+            args.putString("CORRIENTE", currentVolt);
 
             statsFragment.putArguments(args);
 
@@ -357,10 +423,17 @@ public class MainActivity extends AppCompatActivity{
             String velocidad = intent.getStringExtra("VELOCIDAD");
             String distancia = intent.getStringExtra("DISTANCIA");
             String fecha = intent.getStringExtra("FECHA");
-            try{
-                Double kmDouble = Double.parseDouble(distancia) / 1000;
 
+            boolean nuevaRuta = intent.getBooleanExtra("RUTA_NUEVA", false);
+
+            try{
+
+                Double kmDouble = Double.parseDouble(distancia) / 1000;
                 String kmRecorridosDecimals =  new DecimalFormat("#.##").format(kmDouble);
+
+                if(nuevaRuta){
+                    txtEnRutaView.setVisibility(View.VISIBLE);
+                }
 
                 kmVelText.setText(velocidad);
                 txtRecorridoRuta.setText(kmRecorridosDecimals + " km.");
@@ -369,7 +442,6 @@ public class MainActivity extends AppCompatActivity{
             catch (Exception e){
 
             }
-
         }
     };
 
@@ -398,6 +470,51 @@ public class MainActivity extends AppCompatActivity{
                     txtViewGPS.setText("El GPS está apagado");
                 }
             }
+        }
+    };
+
+    private BroadcastReceiver dataOBD2Receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String velocidad = intent.getStringExtra("VEL");
+            String rpm = intent.getStringExtra("RPM");
+            String mass_airflow = intent.getStringExtra("MASS_AIRFLOW");
+
+            Bundle args = new Bundle();
+            args.putString("VEL", velocidad);
+            args.putString("RPM", rpm);
+            args.putString("MASS_AIRFLOW", mass_airflow);
+
+            batteryFragment.putArguments(args);
+        }
+    };
+
+
+    private BroadcastReceiver dataKeyOBD2 = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            String batteryCurrentValue = intent.getStringExtra("BATTERYCURRENT");
+            String batteryVoltageValue = intent.getStringExtra("BATERRYVOLTAGE");
+            String cumulativeCharValue = intent.getStringExtra("CUMULATIVECHAR");
+            String cumulativeDiscValue = intent.getStringExtra("CUMULATIVEDISC");
+            String driveMotorSpd1Value = intent.getStringExtra("DRIVEMOTORSPD1");
+            String stateOfChargedValue = intent.getStringExtra("STATEOFCHARGED");
+            String stateOfHealthBValue = intent.getStringExtra("STATEOFHEALTHB");
+
+            Bundle args = new Bundle();
+
+            args.putString("BATTERYCURRENT", batteryCurrentValue + "");
+            args.putString("BATERRYVOLTAGE", batteryVoltageValue + "");
+            args.putString("CUMULATIVECHAR", cumulativeCharValue + "");
+            args.putString("CUMULATIVEDISC", cumulativeDiscValue + "");
+            args.putString("DRIVEMOTORSPD1", driveMotorSpd1Value + "");
+            args.putString("STATEOFCHARGED", stateOfChargedValue + "");
+            args.putString("STATEOFHEALTHB", stateOfHealthBValue + "");
+
+            batteryFragment.putArgumentsOBD2(args);
         }
     };
 
@@ -464,7 +581,6 @@ public class MainActivity extends AppCompatActivity{
                     params.setMargins(0, 0, 0, 0);
                     txtViewWifi.setLayoutParams(params);
                     txtViewWifi.setText("");
-
                 }
             }
             else{
