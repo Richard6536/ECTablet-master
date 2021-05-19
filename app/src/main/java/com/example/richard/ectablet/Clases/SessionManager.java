@@ -9,6 +9,7 @@ import android.util.Log;
 import com.example.richard.ectablet.Activity.LoginV2Activity;
 import com.example.richard.ectablet.Activity.SeleccionarVehiculoActivity;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -39,11 +40,25 @@ public class SessionManager {
     public static final String KEY_PATENTE = "patente";
     public static final String KEY_ESTADO_RUTA = "estadoRuta";
 
+    public static final String KEY_POINTS = "points";
+
     public SessionManager(Context context)
     {
         this._context = context;
         pref = _context.getSharedPreferences(PREFER_NAME, PRIVATE_MODE);
         editor = pref.edit();
+    }
+
+    public void savePoints(JSONArray arrayPoints){
+        editor.putString(KEY_POINTS, arrayPoints.toString());
+        editor.commit();
+    }
+
+    public HashMap<String, String> getPoints()
+    {
+        HashMap<String, String> points = new HashMap<String, String>();
+        points.put(KEY_POINTS, pref.getString(KEY_POINTS, null));
+        return points;
     }
 
     public void levantarSesion(String llave, int vehiculoId, int flotaId, String patente, String estadoRuta)

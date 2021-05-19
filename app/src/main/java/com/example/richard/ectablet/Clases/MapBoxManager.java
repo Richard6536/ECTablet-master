@@ -35,6 +35,7 @@ import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.LineString;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -46,6 +47,8 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
+import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
+import com.mapbox.mapboxsdk.style.expressions.Expression;
 import com.mapbox.mapboxsdk.style.layers.LineLayer;
 import com.mapbox.mapboxsdk.style.layers.Property;
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
@@ -55,8 +58,14 @@ import com.mapbox.mapboxsdk.utils.BitmapUtils;
 import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
 import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
@@ -66,6 +75,7 @@ import retrofit2.Response;
 import static com.android.volley.VolleyLog.TAG;
 import static com.mapbox.core.constants.Constants.PRECISION_6;
 import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
+import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconAllowOverlap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconIgnorePlacement;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
@@ -74,6 +84,10 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineCap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineJoin;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineWidth;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textAllowOverlap;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textField;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textIgnorePlacement;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textOffset;
 
 public class MapBoxManager {
 
@@ -166,7 +180,7 @@ public class MapBoxManager {
                     Places.initialize(getApplicationContext(), "AIzaSyAXRgGC2NP-RPcP0YCcpuw2QMUPEO4Hqsc");
                 }
 
-// Initialize the AutocompleteSupportFragment.
+                // Initialize the AutocompleteSupportFragment.
                 AutocompleteSupportFragment autocompleteFragment = autoCompleteSupportFragment;
 
                 autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
@@ -211,19 +225,17 @@ public class MapBoxManager {
                                 .newCameraPosition(position), 8000);
 
 
-
-
-// Set the origin location to the Alhambra landmark in Granada, Spain.
+                        // Set the origin location to the Alhambra landmark in Granada, Spain.
                         origin = Point.fromLngLat(-73.170903, -40.567141);
 
-// Set the destination location to the Plaza del Triunfo in Granada, Spain.
+                        // Set the destination location to the Plaza del Triunfo in Granada, Spain.
                         destination = Point.fromLngLat(place.getLatLng().longitude, place.getLatLng().latitude);
 
                         initSource(style);
 
                         initLayers(style, recursos);
 
-// Get the directions route from the Mapbox Directions API
+                        // Get the directions route from the Mapbox Directions API
                         getRoute(mapboxMap, origin, destination);
                     }
 
@@ -256,8 +268,81 @@ public class MapBoxManager {
                 });
 
                 verifyStoragePermissions(actividad);
+
+                try {
+
+                    SessionManager session = new SessionManager(getApplicationContext());
+                    Map<String, String> data = session.getPoints();
+                    if(data.get(SessionManager.KEY_POINTS) != null){
+
+                        String dataPoints = data.get(SessionManager.KEY_POINTS).replaceAll("\\\\", "");
+
+                        JSONArray jsonArray = new JSONArray(dataPoints);
+
+                        for(int i = 0; i < jsonArray.length(); i++){
+                            JSONObject json_data = jsonArray.getJSONObject(i);
+
+                            String nombre = json_data.getString("Name");
+                            String latitud = json_data.getString("Latitude");
+                            String longitud = json_data.getString("Longitude");
+                            boolean activado = json_data.getBoolean("Activado");
+
+                            if(activado){
+                                // Add the marker image to map
+                                style.addImage(nombre,
+                                        BitmapFactory.decodeResource(
+                                                recursos, R.drawable.mapbox_marker_icon_default));
+
+                                geoJsonSource = new GeoJsonSource(nombre, Feature.fromGeometry(
+                                        Point.fromLngLat(Double.parseDouble(longitud), Double.parseDouble(latitud))));
+                                style.addSource(geoJsonSource);
+
+                                symbolLayer = new SymbolLayer(nombre, nombre);
+                                symbolLayer.withProperties(
+                                        PropertyFactory.iconImage(nombre));
+
+                                style.addLayer(symbolLayer);
+
+                                mapboxMap.addPolygon(generatePerimeter(
+                                        new LatLng(Double.parseDouble(latitud), Double.parseDouble(longitud)),
+                                        0.015,
+                                        200));
+
+                            }
+                        }
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
+    }
+
+    private PolygonOptions generatePerimeter(LatLng centerCoordinates, double radiusInKilometers, int numberOfSides) {
+        List<LatLng> positions = new ArrayList<>();
+        double distanceX = radiusInKilometers / (111.319 * Math.cos(centerCoordinates.getLatitude() * Math.PI / 180));
+        double distanceY = radiusInKilometers / 110.574;
+
+        double slice = (2 * Math.PI) / numberOfSides;
+
+        double theta;
+        double x;
+        double y;
+        LatLng position;
+        for (int i = 0; i < numberOfSides; ++i) {
+            theta = i * slice;
+            x = distanceX * Math.cos(theta);
+            y = distanceY * Math.sin(theta);
+
+            position = new LatLng(centerCoordinates.getLatitude() + y,
+                    centerCoordinates.getLongitude() + x);
+            positions.add(position);
+        }
+        return new PolygonOptions()
+                .addAll(positions)
+                .fillColor(Color.BLUE)
+                .alpha(0.4f);
     }
 
     private void getRoute(Point origin, Point destination) {

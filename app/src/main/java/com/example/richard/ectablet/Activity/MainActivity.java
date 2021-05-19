@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity{
         super.onCreate(savedInstanceState);
 
         ControllerActivity.activiyAbiertaActual = this;
-
+        
         //Mapbox Access token
         Mapbox.getInstance(getApplicationContext(), getString(R.string.access_token));
 
@@ -145,8 +145,11 @@ public class MainActivity extends AppCompatActivity{
         lLayoutCerrarSesion.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //detenerServicios();
+
+                startActivity(new Intent(getApplication(), SettingsActivity.class));
                 /*
+                detenerServicios();
+
                 AlertDialog.Builder builder1 = new AlertDialog.Builder(MainActivity.this);
                 builder1.setMessage("Write your message here.");
                 builder1.setCancelable(true);
@@ -226,7 +229,7 @@ public class MainActivity extends AppCompatActivity{
             startActivityForResult(enableBtIntent, DISCOVERABLE_REQUEST_CODE);
         }
         else{
-            iniciarServicioOBD2();
+            //iniciarServicioOBD2();
         }
     }
 
@@ -373,7 +376,7 @@ public class MainActivity extends AppCompatActivity{
         super.onActivityResult(requestCode, resultCode, data);
 
         if(resultCode == -1){
-            iniciarServicioOBD2();
+            //iniciarServicioOBD2();
         }
         else{
             Log.d("BTRESULT","BT desactivado");

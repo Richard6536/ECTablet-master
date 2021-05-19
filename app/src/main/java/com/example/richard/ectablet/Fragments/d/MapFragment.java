@@ -40,8 +40,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         mapBoxBManager.InicializarMapBox(this, view, savedInstanceState);
 
-
-
         /**
         duration = view.findViewById(R.id.txtDuration);
         distance = view.findViewById(R.id.txtDistance);
@@ -90,6 +88,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         Resources recursosFragmento = MapFragment.this.getResources();
 
         mapBoxBManager.DefinirStyle(autocompleteSupport, recursosFragmento, getActivity());
+
 
     }
 

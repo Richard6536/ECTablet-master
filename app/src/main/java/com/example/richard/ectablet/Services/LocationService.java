@@ -5,9 +5,15 @@ import android.app.Activity;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
+import android.icu.text.Transliterator;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
@@ -33,12 +39,22 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
 import android.util.Log;
+import android.widget.EditText;
 
 import com.example.richard.ectablet.Activity.MainActivity;
 import com.example.richard.ectablet.Clases.Almacenamiento;
 import com.example.richard.ectablet.Clases.ControllerActivity;
+import com.example.richard.ectablet.Clases.HexData;
 import com.example.richard.ectablet.Clases.SessionManager;
 import com.example.richard.ectablet.Clases.Vehiculo;
+import com.example.richard.ectablet.R;
+import com.github.pires.obd.commands.protocol.ObdRawCommand;
+import com.mapbox.geojson.Feature;
+import com.mapbox.geojson.Point;
+import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
+import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
+import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -54,24 +70,30 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.android.volley.VolleyLog.TAG;
+import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
 
 public class LocationService extends Service {
 
     Timer timer = new Timer();
+    Thread threadBLT;
 
     LocationManager locationManager;
     LocationListener locationListener = new LocationListener();
@@ -81,11 +103,31 @@ public class LocationService extends Service {
 
     public static Location lastLocation;
     public static Location updatedLocation;
+    public boolean puntoEnviado = false;
 
     public float distanciaAcumulada = 0;
 
     String LLAVE, vehiculoId, flotaId, estadoRuta;
     String fechaInicio = "-";
+
+    public BluetoothSocket socket;
+    private InputStream is;
+    private OutputStreamWriter os;
+    private OutputStream ostream;
+
+    public static String btAdress = "0C:FC:85:19:74:C2";
+    private static final UUID UUID_BT = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    public BluetoothDevice device;
+    BluetoothServerSocket serverSocket;
+    public String TAG = "OBDRESULT";
+
+    public double socGlobal = 0.0;
+    public int rpmGlobal = 0;
+    public double batteryVoltageGlobal = 0.0;
+    public double batteryCurrentGlobal = 0.0;
+    public int sohGlobal = 0;
+    public double cumulativeChCurrentGlobal = 0.0;
+    public double cumulativeDischCurrentGlobal = 0.0;
 
     public LocationService() {
 
@@ -112,6 +154,11 @@ public class LocationService extends Service {
         try{
             timer.cancel();
             locationManager.removeUpdates(locationListener);
+            socket.close();
+            is.close();
+            ostream.close();
+
+            threadBLT.interrupt();
         }
         catch (Exception e){}
 
@@ -165,7 +212,16 @@ public class LocationService extends Service {
 
             //new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
             //new OBDLogs().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+
+            //Para leer directamente
+            //threadBLT = new Thread(reader);
+            //threadBLT.start();
+            //new sendData().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+
+            //Para usar torque
             new writeOBD2ExcelAsync().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+
+
         }
         catch (Exception e)
         {
@@ -178,10 +234,7 @@ public class LocationService extends Service {
 
         @Override
         public void onLocationChanged(Location location) {
-            //float accuracyPosicion = location.getAccuracy();
-            Log.e("POSITION_TAG", "lnlat: " + location.getLatitude() + "," + location.getLongitude());
-            enviarDatosVehiculo(location);
-
+            updatedLocation = location;
         }
 
         @Override
@@ -200,9 +253,9 @@ public class LocationService extends Service {
         }
     }
 
-    public void enviarDatosVehiculo(Location location){
-
-        updatedLocation = location;
+    public void enviarDatosVehiculo(Location location, double batteryCurrentValue, double batteryVoltageValue, double cumulativeCharValue,
+                                    double cumulativeDiscValue, double driveMotorSpd1Value, double stateOfChargedValue,
+                                    double stateOfHealthBValue, String puntoDestino){
 
         JSONObject datosVehiculo = new JSONObject();
 
@@ -225,12 +278,20 @@ public class LocationService extends Service {
                 sessionController.levantarSesion("", 0, 0, "", "false");
             }
 
-            //readExcelOBD2(location);
-
             datosVehiculo.put("GPSOffBool",false);
             datosVehiculo.put("Altitud", location.getAltitude());
             datosVehiculo.put("Velocidad",velocidadKm);
             datosVehiculo.put("Aceleracion",0);
+
+            datosVehiculo.put("VelocidadRPM", 0);
+            datosVehiculo.put("BatteryCurrent_A", batteryCurrentValue);
+            datosVehiculo.put("Battery_DC_Voltage_V", batteryVoltageValue);
+            datosVehiculo.put("CumulativeChargeCurrent_Ah", cumulativeCharValue);
+            datosVehiculo.put("CUmulativeDischargeCurrent_Ah", cumulativeDiscValue);
+            datosVehiculo.put("RPM", driveMotorSpd1Value);
+            datosVehiculo.put("StateOfCharge_SOC", stateOfChargedValue);
+            datosVehiculo.put("StateOfHealth_SOH", stateOfHealthBValue);
+            datosVehiculo.put("NombrePunto", puntoDestino);
 
             JSONArray ja = new JSONArray();
             ja.put(datosVehiculo);
@@ -238,6 +299,10 @@ public class LocationService extends Service {
             //Almacenamiento.crearRegistroErroresPosicion("Paso_enviarDatosVehiculo",ja);
             //Enviar datos al webservice
             new Vehiculo.ActualizarDatos().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ja.toString(), vehiculoId, LLAVE, flotaId);
+
+            if(isEmpty(puntoDestino) == false){
+                puntoEnviado = true;
+            }
 
             if(lastLocation != location) {
                 distanciaEnMetros(location);
@@ -248,6 +313,56 @@ public class LocationService extends Service {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    private String checkPointsNearPosition(Location position){
+
+        try {
+
+            String nearPointName = "";
+
+            SessionManager session = new SessionManager(getApplicationContext());
+            Map<String, String> data = session.getPoints();
+
+            if(data.get(SessionManager.KEY_POINTS) != null){
+                String dataPoints = data.get(SessionManager.KEY_POINTS).replaceAll("\\\\", "");
+
+                JSONArray jsonArray = new JSONArray(dataPoints);
+
+                for(int i = 0; i < jsonArray.length(); i++){
+                    JSONObject json_data = jsonArray.getJSONObject(i);
+
+                    String nombre = json_data.getString("Name");
+                    String latitud = json_data.getString("Latitude");
+                    String longitud = json_data.getString("Longitude");
+                    boolean activado = json_data.getBoolean("Activado");
+
+                    if(activado){
+                        boolean isNear = arePointsNear(position, new LatLng(Double.parseDouble(latitud), Double.parseDouble(longitud)), 0.015);
+                        if(isNear)
+                        {
+                            nearPointName = nombre;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return nearPointName;
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
+    private boolean arePointsNear(Location checkPoint, LatLng centerPoint, double km) {
+        int ky = 40000 / 360;
+        double kx = Math.cos(Math.PI * centerPoint.getLatitude() / 180.0) * ky;
+        double dx = Math.abs(centerPoint.getLongitude() - checkPoint.getLongitude()) * kx;
+        double dy = Math.abs(centerPoint.getLatitude() - checkPoint.getLatitude()) * ky;
+        return Math.sqrt(dx * dx + dy * dy) <= km;
     }
 
     public String FormatDate() {
@@ -364,6 +479,48 @@ public class LocationService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+    public void dataCompilationToSend(Location location) throws IOException {
+
+        String currentDate = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
+
+        Object[][] carData = {
+                {
+                        currentDate,
+                        batteryCurrentGlobal,
+                        batteryVoltageGlobal,
+                        cumulativeChCurrentGlobal,
+                        cumulativeDischCurrentGlobal,
+                        rpmGlobal,
+                        socGlobal,
+                        sohGlobal,
+                        location.getLatitude(),
+                        location.getLongitude(),
+                        location.getAltitude()
+                }
+        };
+
+        String nombrePunto = checkPointsNearPosition(location);
+        if(isEmpty(nombrePunto) == false){
+            Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
+            if (puntoEnviado){
+                nombrePunto = "";
+                Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
+            }
+        }
+        else{
+            puntoEnviado = false;
+            Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
+        }
+
+
+        createExcelOBD2(carData, nombrePunto);
+        enviarDatosVehiculo(location, batteryCurrentGlobal, batteryVoltageGlobal, cumulativeChCurrentGlobal,
+                cumulativeDischCurrentGlobal, rpmGlobal, socGlobal, sohGlobal, nombrePunto);
+
+        sendOBD2ToActivity(batteryCurrentGlobal, batteryVoltageGlobal, cumulativeChCurrentGlobal,
+                cumulativeDischCurrentGlobal, rpmGlobal, socGlobal, sohGlobal);
+    }
+
     public void readExcelOBD2(Location location){
 
         File actualFile = null;
@@ -405,7 +562,6 @@ public class LocationService extends Service {
 
                 while ((line = br.readLine()) != null) {
                     // Doing some actions
-
                     // Overwrite lastLine each time
                     lastLine = line;
                 }
@@ -431,10 +587,26 @@ public class LocationService extends Service {
                                 stateOfHealthBValue,
                                 location.getLatitude(),
                                 location.getLongitude(),
+                                location.getAltitude()
                         }
                 };
 
-                createExcelOBD2(carData);
+                String nombrePunto = checkPointsNearPosition(location);
+                if(isEmpty(nombrePunto) == false){
+                    Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
+                    if (puntoEnviado){
+                        nombrePunto = "";
+                        Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
+                    }
+                }
+                else{
+                    puntoEnviado = false;
+                    Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
+                }
+
+                createExcelOBD2(carData, nombrePunto);
+                enviarDatosVehiculo(location, batteryCurrentValue, batteryVoltageValue, cumulativeCharValue, cumulativeDiscValue, driveMotorSpd1Value, stateOfChargedValue, stateOfHealthBValue, nombrePunto);
+
                 sendOBD2ToActivity(batteryCurrentValue, batteryVoltageValue, cumulativeCharValue,
                         cumulativeDiscValue, driveMotorSpd1Value, stateOfChargedValue, stateOfHealthBValue);
 
@@ -442,6 +614,12 @@ public class LocationService extends Service {
                 e.printStackTrace();
             }
         }
+    }
+
+    private boolean isEmpty(String etText) {
+        if (etText.trim().length() > 0)
+            return false;
+        return true;
     }
 
     public void readCSV(File file) throws IOException {
@@ -460,7 +638,6 @@ public class LocationService extends Service {
         catch (Exception e){
             e.printStackTrace();
         }
-
     }
 
     public double checkNull(Cell cell){
@@ -481,7 +658,7 @@ public class LocationService extends Service {
         return cont;
     }
 
-    public void createExcelOBD2(Object[][] carData) throws IOException {
+    public void createExcelOBD2(Object[][] carData, String nombrePunto) throws IOException {
 
         String path = Environment.getExternalStorageDirectory().toString();
 
@@ -510,6 +687,8 @@ public class LocationService extends Service {
             headRow.createCell(7).setCellValue((String) "State of Health (SOH)");
             headRow.createCell(8).setCellValue((String) "Latitude");
             headRow.createCell(9).setCellValue((String) "Longitude");
+            headRow.createCell(10).setCellValue((String) "Altitude");
+            headRow.createCell(11).setCellValue((String) "Punto Destino");
 
         }
         else{
@@ -532,6 +711,10 @@ public class LocationService extends Service {
                 }
                 ++columnCount;
             }
+
+            Cell cell = row.createCell(columnCount);
+            cell.setCellValue((String)nombrePunto);
+
         }
 
         try (FileOutputStream outputStream = new FileOutputStream(f)) {
@@ -555,7 +738,38 @@ public class LocationService extends Service {
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    readExcelOBD2(updatedLocation);
+                    if(updatedLocation != null){
+                        readExcelOBD2(updatedLocation);
+                    }
+                }
+            }, begin, timeInterval);
+
+            return new JSONObject();
+        }
+
+        protected void onPostExecute(JSONObject respuestaOdata) {
+        }
+    }
+
+    public class sendData extends AsyncTask<String,String, JSONObject>
+    {
+        @Override
+        protected JSONObject doInBackground(String... parametros) {
+
+            int begin = 0;
+            int timeInterval = 1000;
+            dateTracklogs = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if(updatedLocation != null){
+                        try {
+                            dataCompilationToSend(updatedLocation);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             }, begin, timeInterval);
 
@@ -579,6 +793,7 @@ public class LocationService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intentKey);
 
         Intent intent = new Intent("intentKeyOBD2");
+
         // You can also include some extra data.
         intent.putExtra("BATTERYCURRENT", new DecimalFormat("#.##").format(batteryCurrentValue)+"");
         intent.putExtra("BATERRYVOLTAGE", new DecimalFormat("#.#").format(batteryVoltageValue)+"");
@@ -589,5 +804,308 @@ public class LocationService extends Service {
         intent.putExtra("STATEOFHEALTHB", new DecimalFormat("#.#").format(stateOfHealthBValue)+"");
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+
+    private Runnable reader = new Runnable() {
+        public void run() {
+            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+            Log.d("ThreadConnection_BT", "BT: " + btAdress);
+
+            try {
+
+                BluetoothDevice device = adapter.getRemoteDevice(btAdress);
+                socket = device.createInsecureRfcommSocketToServiceRecord(UUID_BT); // createRfcommSocketToServiceRecord
+
+                Log.d("ThreadConnection_BT", "BT: " + device.getName() + " - " + device.getAddress());
+
+                socket.connect();
+                Log.d("ThreadConnection_BT", "Pass Socket connect");
+                is = socket.getInputStream();
+                ostream = socket.getOutputStream();
+
+                ObdRawCommand obdRawATDCommand = new ObdRawCommand("AT D");
+                obdRawATDCommand.run(is, ostream);
+
+                //Thread.sleep(500);
+
+                ObdRawCommand obdRawATZCommand = new ObdRawCommand("AT Z");
+                obdRawATZCommand.run(is, ostream);
+
+                //Thread.sleep(500);
+
+                ObdRawCommand obdRawATL0Command = new ObdRawCommand("AT L0");
+                obdRawATL0Command.run(is, ostream);
+
+                //Thread.sleep(500);
+
+                ObdRawCommand obdRawATE0Command = new ObdRawCommand("AT E0");
+                obdRawATE0Command.run(is, ostream);
+
+                //Thread.sleep(500);
+
+                ObdRawCommand obdRawATS0Command = new ObdRawCommand("AT S0");
+                obdRawATS0Command.run(is, ostream);
+
+                //Thread.sleep(500);
+
+                ObdRawCommand obdRawATH1Command = new ObdRawCommand("AT H1");
+                obdRawATH1Command.run(is, ostream);
+
+                //Thread.sleep(500);
+
+                ObdRawCommand obdRawATSP0Command = new ObdRawCommand("AT SP 0");
+                obdRawATSP0Command.run(is, ostream);
+
+                //Thread.sleep(500);
+
+                Log.d("ThreadConnection_BT", "TODO OK");
+
+                ObdRawCommand obdRawCommand2101 = new ObdRawCommand("2101");
+                ObdRawCommand obdRawCommand2105 = new ObdRawCommand("2105");
+
+                Log.d("ThreadConnection_BT", "TODO OK 2");
+                while (true) {
+
+                    //Thread.sleep(500);
+
+                    String obdRaw2101Cmd = "";
+                    String obdRaw2105Cmd = "";
+
+                    try {
+
+                        obdRawCommand2101.run(is, ostream);
+                        obdRawCommand2105.run(is, ostream);
+
+                        obdRaw2101Cmd = obdRawCommand2101.getFormattedResult();
+                        obdRaw2105Cmd = obdRawCommand2105.getFormattedResult();
+
+                        Log.d("ThreadConnection_BT", "RESULT: " + obdRaw2101Cmd);
+
+                        decodeHex(obdRaw2101Cmd, obdRaw2105Cmd);
+
+                        Log.d(TAG, obdRaw2105Cmd);
+
+                    } catch (Exception e) {
+                        Log.d("ThreadConnection_BT", "ERROR inside while(true): " + e.getMessage());
+                        break;
+                    }
+                }
+
+                try {
+                    if (is != null && ostream != null && socket != null){
+                        is.close();
+                        ostream.close();
+                        socket.close();
+                    }
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                    Log.e("ThreadConnection_BT","Catch Reader 2: " + ioException.getMessage());
+                }
+
+                threadBLT.interrupt();
+                threadBLT = new Thread(reader);
+                threadBLT.start();
+
+            }
+            catch (IOException | InterruptedException e) {
+                try {
+                    if (is != null && ostream != null && socket != null){
+                        is.close();
+                        ostream.close();
+                        socket.close();
+                    }
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                    Log.e("ThreadConnection_BT","Catch Reader 3: " + ioException.getMessage());
+                }
+
+                threadBLT.interrupt();
+                threadBLT = new Thread(reader);
+                threadBLT.start();
+
+                Log.e("ThreadConnection_BT","Catch Reader 4: " + e.getMessage());
+                //mostrarDatosError(e.getMessage());
+            }
+        }
+    };
+
+
+    private void decodeHex(String dataHex2101, String dataHex2105){
+
+        List<HexData> hexDataList2101 = splitHex16Bytes(dataHex2101);
+        List<HexData> hexDataList2105 = splitHex16Bytes(dataHex2105);
+
+        socGlobal = getSOC(hexDataList2105);
+        rpmGlobal = getRPM(hexDataList2101);
+        batteryVoltageGlobal = getBatteryVoltage(hexDataList2101);
+        batteryCurrentGlobal = getBatteryCurrent(hexDataList2101);
+        sohGlobal = getSOH(hexDataList2105);
+        cumulativeChCurrentGlobal = getCumulativeChargeCurrent(hexDataList2101);
+        cumulativeDischCurrentGlobal = getCumulativeDiscChargeCurrent(hexDataList2101);
+    }
+
+    private List<HexData> splitHex16Bytes(String hex){
+        List<HexData> hexDataList = new ArrayList<>();
+
+        String[] splHex = hex.split("7E");
+
+        for (String h : splHex){
+            String hexRaw = "7E"+h;
+
+            if(hexRaw.length() > 2){
+
+                String data = hexRaw.substring(5);
+                HexData hexData = new HexData();
+                hexData.CanID = hexRaw.length() <= 5 ? hexRaw : hexRaw.substring(0, 5);
+                hexData.Bytes = data.replaceAll("..(?!$)", "$0 ").split(" ");
+                hexData.RawData = hexRaw;
+
+                hexDataList.add(hexData);
+            }
+        }
+
+        return hexDataList;
+    }
+
+    private double getSOC(List<HexData> hexList){
+        double soc = 0.0;
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC24")){
+                String hexSoc = h.Bytes[h.Bytes.length - 1];
+                int num = Integer.parseInt(hexSoc,16);
+                soc = num / 2.0;
+                break;
+            }
+        }
+        return soc;
+    }
+
+    private int getRPM(List<HexData> hexList){
+        int rpm = 0;
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC28")){
+                String hexRPM1 = h.Bytes[0];
+                String hexRPM2 = h.Bytes[1];
+
+                int num = Integer.parseInt(hexRPM1+hexRPM2,16);
+                rpm = num / 4;
+                break;
+            }
+        }
+        return rpm;
+    }
+
+    private double getBatteryVoltage(List<HexData> hexList){
+        double voltage = 0.0;
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC22")){
+                String hexVolt1 = h.Bytes[1];
+                String hexVolt2 = h.Bytes[2];
+
+                int num = Integer.parseInt(hexVolt1+hexVolt2,16);
+                voltage = num / 10.0;
+                break;
+            }
+        }
+        return voltage;
+    }
+
+    private double getBatteryCurrent(List<HexData> hexList){
+        double current = 0.0;
+        String hexCurrent1 = "";
+        String hexCurrent2 = "";
+
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC21")){
+                hexCurrent1 =  h.Bytes[h.Bytes.length - 1];
+            }
+
+            if(h.CanID.equals("7EC22")){
+                hexCurrent2 =  h.Bytes[0];
+            }
+        }
+
+        int num = Integer.parseInt(hexCurrent1 + hexCurrent2,16);
+        current = num / 10.0;
+
+        return current;
+    }
+
+    private int getSOH(List<HexData> hexList){
+        int soh = 0;
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC24")){
+                String hexSoh1 = h.Bytes[0];
+                String hexSoh2 = h.Bytes[1];
+
+                int num = Integer.parseInt(hexSoh1 + hexSoh2,16);
+                soh = num / 10;
+                break;
+            }
+        }
+        return soh;
+    }
+
+    private double getCumulativeChargeCurrent(List<HexData> hexList){
+
+        double cumulativeChargeCurrent = 0;
+
+        String hexCumulCurrent1 = "";
+        String hexCumulCurrent2 = "";
+
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC24")){
+                String hexCumul1 = h.Bytes[h.Bytes.length - 2];
+                String hexCumul2 =  h.Bytes[h.Bytes.length - 1];
+                hexCumulCurrent1 = hexCumul1 + hexCumul2;
+            }
+
+            if(h.CanID.equals("7EC25")){
+                String hexCumul1 = h.Bytes[0];
+                String hexCumul2 =  h.Bytes[1];
+                hexCumulCurrent2 = hexCumul1 + hexCumul2;
+            }
+        }
+
+        int num = Integer.parseInt(hexCumulCurrent1 + hexCumulCurrent2,16);
+        cumulativeChargeCurrent = num / 10.0;
+        return cumulativeChargeCurrent;
+    }
+
+    private double getCumulativeDiscChargeCurrent(List<HexData> hexList){
+
+        double cumulativeDiscChargeCurrent = 0;
+
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC25")){
+                String hexCumulDisc1 = h.Bytes[2];
+                String hexCumulDisc2 =  h.Bytes[3];
+                String hexCumulDisc3 = h.Bytes[4];
+                String hexCumulDisc4 =  h.Bytes[5];
+
+                int num = Integer.parseInt(hexCumulDisc1 + hexCumulDisc2 + hexCumulDisc3 + hexCumulDisc4,16);
+                cumulativeDiscChargeCurrent = num / 10.0;
+            }
+        }
+        return cumulativeDiscChargeCurrent;
+    }
+
+    private int getCumulativeOperatingTime(List<HexData> hexList){
+        int operatingTime = 0;
+
+        for (HexData h : hexList){
+            if(h.CanID.equals("7EC27")){
+                String hexCumulOp1 = h.Bytes[0];
+                String hexCumulOp2 =  h.Bytes[1];
+                String hexCumulOp3 = h.Bytes[2];
+                String hexCumulOp4 =  h.Bytes[3];
+
+                int num = Integer.parseInt(hexCumulOp1 + hexCumulOp2 + hexCumulOp3 + hexCumulOp4,16);
+                operatingTime = num;
+            }
+        }
+
+        return operatingTime;
     }
 }

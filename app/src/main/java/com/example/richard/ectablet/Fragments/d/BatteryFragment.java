@@ -143,6 +143,25 @@ public class BatteryFragment extends Fragment {
         String stateOfChargedValue = args2.getString("STATEOFCHARGED");
         String stateOfHealthBValue = args2.getString("STATEOFHEALTHB");
 
+        try {
+            float socFloat = Float.parseFloat(stateOfChargedValue);
+            circularProgressBar.setProgressWithAnimation(socFloat, Long.valueOf(1000)); // =1s
+
+            if(socFloat > 51.0){
+                circularProgressBar.setProgressBarColorStart(Color.GREEN);
+                circularProgressBar.setProgressBarColorEnd(Color.WHITE);
+            }
+            else if(socFloat > 31.0 && socFloat < 51.0){
+                circularProgressBar.setProgressBarColorStart(Color.YELLOW);
+                circularProgressBar.setProgressBarColorEnd(Color.WHITE);
+            }
+            else if(socFloat < 31.0){
+                circularProgressBar.setProgressBarColorStart(Color.RED);
+                circularProgressBar.setProgressBarColorEnd(Color.WHITE);
+            }
+        }
+        catch (Exception e){ }
+
         txtVoltaje.setText(batteryVoltageValue + " V");
         txtBatteryLife.setText(stateOfChargedValue+"%");
         txtBatteryCurrent.setText(batteryCurrentValue+ " A");
@@ -176,7 +195,7 @@ public class BatteryFragment extends Fragment {
         imageViewCar.startAnimation(anim);
 
         // or with animation
-        circularProgressBar.setProgressWithAnimation(100f, Long.valueOf(1000)); // =1s
+        circularProgressBar.setProgressWithAnimation(0f, Long.valueOf(1000)); // =1s
 
     }
 

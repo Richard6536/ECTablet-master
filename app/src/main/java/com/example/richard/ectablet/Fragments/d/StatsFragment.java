@@ -10,6 +10,7 @@ import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.core.content.ContextCompat;
 
+import android.renderscript.Sampler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,6 +18,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.richard.ectablet.R;
@@ -65,6 +67,7 @@ public class StatsFragment extends Fragment {
 
         startChart();
         startChartCorriente();
+
         //startChartRin();
 
         return view;
@@ -293,7 +296,6 @@ public class StatsFragment extends Fragment {
 
         LineData data = new LineData();
         data.setValueTextColor(Color.WHITE);
-
         // add empty data
         mChartRin.setData(data);
 
@@ -447,8 +449,8 @@ public class StatsFragment extends Fragment {
             }
 
             data.addEntry(new Entry(set.getEntryCount(), estimacionSompa), 0);
-            data.addEntry(new Entry(set2.getEntryCount(), confIntervalSompa1), 1);
-            data.addEntry(new Entry(set3.getEntryCount(), confIntervalSompa2), 2);
+            data.addEntry(new Entry(set.getEntryCount(), confIntervalSompa1), 1);
+            data.addEntry(new Entry(set.getEntryCount(), confIntervalSompa2), 2);
 
             //mChart.setData(data);
             // let the graph know it's data has changed
