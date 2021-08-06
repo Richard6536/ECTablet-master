@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#273036</color><!--#303030-->
+    <color name="colorPrimaryDivider">#2A2B2B2B</color><!--#303030-->
+    <color name="colorPrimaryDividerNight">#474747</color><!--#303030-->
+    <color name="colorPrimaryDayTransparent">#DDFFFFFF</color><!--#303030-->
+    <color name="colorPrimaryDayWaves">#FAFAFA</color><!--#303030-->
+    <color name="colorPrimaryBlack">#0E0E0E</color><!--#303030-->
+    <color name="colorPrimaryDay">#FFFFFF</color><!--#303030-->
+    <color name="colorSquareNight">#2F3A40</color><!--#303030-->
+    <color name="colorSquareDay">#DADADA</color><!--#303030-->
+
+    <color name="colorPrimaryTransparent">#DD273036</color><!--#303030-->
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
     <color name="black_overlay">#66000000</color>

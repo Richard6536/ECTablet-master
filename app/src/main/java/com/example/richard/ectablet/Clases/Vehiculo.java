@@ -78,7 +78,7 @@ public class Vehiculo {
             Log.d("Session", "params: "+datos);
             try {
 
-                URL url = new URL("http://autoelectrico.tk/odata/Autos/ActualizarDatos");
+                URL url = new URL("http://autoelectrico.ml/odata/Autos/ActualizarDatos");
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setDoOutput(true);
                 urlConnection.setRequestMethod("POST");
@@ -219,7 +219,7 @@ public class Vehiculo {
             OutputStream os = null;
 
             try {
-                URL url = new URL("http://autoelectrico.tk/odata/Autos/ActualizarDatosRaspberryDirecto");
+                URL url = new URL("http://autoelectrico.ml/odata/Autos/ActualizarDatosRaspberryDirecto");
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setConnectTimeout(6000);
                 urlConnection.setReadTimeout(6000);

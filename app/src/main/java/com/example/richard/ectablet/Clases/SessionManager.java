@@ -41,12 +41,25 @@ public class SessionManager {
     public static final String KEY_ESTADO_RUTA = "estadoRuta";
 
     public static final String KEY_POINTS = "points";
+    public static final String KEY_THEME = "theme";
 
     public SessionManager(Context context)
     {
         this._context = context;
         pref = _context.getSharedPreferences(PREFER_NAME, PRIVATE_MODE);
         editor = pref.edit();
+    }
+
+    public void saveTheme(boolean themeNight){
+        editor.putBoolean(KEY_THEME, themeNight);
+        editor.commit();
+    }
+
+    public HashMap<String, Boolean> getTheme()
+    {
+        HashMap<String, Boolean> points = new HashMap<String, Boolean>();
+        points.put(KEY_THEME, pref.getBoolean(KEY_THEME, true));
+        return points;
     }
 
     public void savePoints(JSONArray arrayPoints){
@@ -132,7 +145,7 @@ public class SessionManager {
 
             Log.d("Session", "params: "+datos);
             try {
-                URL url = new URL("http://autoelectrico.tk/odata/Autos/IniciarSesion");
+                URL url = new URL("http://autoelectrico.ml/odata/Autos/IniciarSesion");
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setDoOutput(true);
                 urlConnection.setRequestMethod("POST");
@@ -213,7 +226,7 @@ public class SessionManager {
 
             Log.d("Session", "params: "+datos);
             try {
-                URL url = new URL("http://autoelectrico.tk/odata/Autos/SeleccionarVehiculo");
+                URL url = new URL("http://autoelectrico.ml/odata/Autos/SeleccionarVehiculo");
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setDoOutput(true);
                 urlConnection.setRequestMethod("POST");
@@ -294,7 +307,7 @@ public class SessionManager {
 
             Log.d("Session", "params: "+datos);
             try {
-                URL url = new URL("http://autoelectrico.tk/odata/Autos/ConfirmacionLlave");
+                URL url = new URL("http://autoelectrico.ml/odata/Autos/ConfirmacionLlave");
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setDoOutput(true);
                 urlConnection.setRequestMethod("POST");

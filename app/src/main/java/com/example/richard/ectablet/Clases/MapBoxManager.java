@@ -13,10 +13,16 @@ import android.os.Build;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.lifecycle.LifecycleOwner;
+
 import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
 
+import com.example.richard.ectablet.Activity.MainActivity;
+import com.example.richard.ectablet.Adapters.CardviewNavigationRoutesAdapter;
+import com.example.richard.ectablet.Adapters.SpinnerIndNavigationAdapter;
+import com.example.richard.ectablet.Adapters.TopSheetBehavior;
+import com.example.richard.ectablet.Fragments.d.MapFragment;
 import com.example.richard.ectablet.R;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.android.gms.common.api.Status;
@@ -24,15 +30,13 @@ import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
-import com.mapbox.android.core.location.LocationEngineProvider;
 import com.mapbox.api.directions.v5.DirectionsCriteria;
-import com.mapbox.api.directions.v5.MapboxDirections;
-import com.mapbox.api.directions.v5.models.DirectionsResponse;
 import com.mapbox.api.directions.v5.models.DirectionsRoute;
 import com.mapbox.api.directions.v5.models.LegStep;
+import com.mapbox.api.directions.v5.models.RouteLeg;
+import com.mapbox.api.directions.v5.models.RouteOptions;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
-import com.mapbox.geojson.LineString;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
@@ -47,17 +51,20 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
-import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
-import com.mapbox.mapboxsdk.style.expressions.Expression;
 import com.mapbox.mapboxsdk.style.layers.LineLayer;
 import com.mapbox.mapboxsdk.style.layers.Property;
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
-import com.mapbox.mapboxsdk.utils.BitmapUtils;
-import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
-import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
+import com.mapbox.navigation.base.options.NavigationOptions;
+import com.mapbox.navigation.base.trip.model.RouteProgress;
+import com.mapbox.navigation.core.MapboxNavigation;
+import com.mapbox.navigation.core.directions.session.RoutesObserver;
+import com.mapbox.navigation.core.directions.session.RoutesRequestCallback;
+import com.mapbox.navigation.core.trip.session.RouteProgressObserver;
+import com.mapbox.navigation.ui.route.NavigationMapRoute;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,40 +73,27 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
-import static com.android.volley.VolleyLog.TAG;
-import static com.mapbox.core.constants.Constants.PRECISION_6;
 import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
-import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconAllowOverlap;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconIgnorePlacement;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconOffset;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineCap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineJoin;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineWidth;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textAllowOverlap;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textField;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textIgnorePlacement;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.textOffset;
 
-public class MapBoxManager {
+public class MapBoxManager implements RouteProgressObserver {
 
-    private MapboxMap mapboxMap;
+    public MapboxNavigation mapboxNavigation;
+
+    public static MapboxMap mapboxMap;
     public static LocationComponent locationComponent;
+    public static String styleString = "cknjd6of817xe17o7vjij0cjr";
 
     private MapView mapView;
     public Style styleMap;
 
     private DirectionsRoute currentRoute;
     private static final String TAG = "DirectionsActivity";
-    private NavigationMapRoute navigationMapRoute;
+    private NavigationMapRoute navigationMapRoute = null;
 
     GeoJsonSource geoJsonSource;
     SymbolLayer symbolLayer;
@@ -115,7 +109,6 @@ public class MapBoxManager {
     private static final String ICON_SOURCE_ID = "icon-source-id";
     private static final String RED_PIN_ICON_ID = "red-pin-icon-id";
 
-    private MapboxDirections client;
     private Point origin;
     private Point destination;
 
@@ -125,6 +118,7 @@ public class MapBoxManager {
         mapboxMap.setCameraPosition(new CameraPosition.Builder()
                 .target(new LatLng(-40.5804984,-73.1153157))
                 .zoom(10)
+                .bearing(180)
                 .build());
     }
 
@@ -157,12 +151,47 @@ public class MapBoxManager {
         mapView.onCreate(bundle);
         mapView.getMapAsync(contexto);
 
+        NavigationOptions.Builder navigation = MapboxNavigation.defaultNavigationOptionsBuilder(getApplicationContext(), Mapbox.getAccessToken());
+        mapboxNavigation = new MapboxNavigation(navigation.build());
+
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        mapboxNavigation.startTripSession();
+
     }
 
-    public void DefinirStyle(AutocompleteSupportFragment autoCompleteSupportFragment, Resources recursos, Activity actividad)
+    public void inicializarObservers(){
+        mapboxNavigation.registerRouteProgressObserver(this::onRouteProgressChanged);
+        mapboxNavigation.registerRoutesObserver(routesObserver);
+    }
+
+    public void destruirObservers(){
+        mapboxNavigation.unregisterRouteProgressObserver(this::onRouteProgressChanged);
+        mapboxNavigation.unregisterRoutesObserver(routesObserver);
+    }
+
+    public void CambiarStyle(String uriStyle){
+        mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/zerods/" + uriStyle), new Style.OnStyleLoaded() {
+            @Override
+            public void onStyleLoaded(@NonNull Style style) {
+                styleMap = style;
+            }
+        });
+    }
+
+    public void DefinirStyle(AutocompleteSupportFragment autoCompleteSupportFragment, Resources recursos,
+                             Activity actividad, View topRouteSheet)
     {
         String a = "";
-        mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/zerods/cknjd6of817xe17o7vjij0cjr"), new Style.OnStyleLoaded() {
+        mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/zerods/"+styleString), new Style.OnStyleLoaded() {
             @Override
             public void onStyleLoaded(@NonNull Style style) {
                 styleMap = style;
@@ -183,7 +212,8 @@ public class MapBoxManager {
                 // Initialize the AutocompleteSupportFragment.
                 AutocompleteSupportFragment autocompleteFragment = autoCompleteSupportFragment;
 
-                autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
+                autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME,
+                        Place.Field.LAT_LNG));
 
                 autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
                     @Override
@@ -215,7 +245,8 @@ public class MapBoxManager {
                         style.addLayer(symbolLayer);
 
                         CameraPosition position = new CameraPosition.Builder()
-                                .target(new LatLng(place.getLatLng().latitude, place.getLatLng().longitude)) // Sets the new camera position
+                                .target(new LatLng(place.getLatLng().latitude,
+                                        place.getLatLng().longitude)) // Sets the new camera position
                                 .zoom(18) // Sets the zoom
                                 .bearing(180) // Rotate the camera
                                 .tilt(30) // Set the camera tilt
@@ -225,18 +256,16 @@ public class MapBoxManager {
                                 .newCameraPosition(position), 8000);
 
 
-                        // Set the origin location to the Alhambra landmark in Granada, Spain.
                         origin = Point.fromLngLat(-73.170903, -40.567141);
-
-                        // Set the destination location to the Plaza del Triunfo in Granada, Spain.
-                        destination = Point.fromLngLat(place.getLatLng().longitude, place.getLatLng().latitude);
+                        destination = Point.fromLngLat(place.getLatLng().longitude,
+                                place.getLatLng().latitude);
 
                         initSource(style);
 
                         initLayers(style, recursos);
 
                         // Get the directions route from the Mapbox Directions API
-                        getRoute(mapboxMap, origin, destination);
+                        //getRoute(mapboxMap, origin, destination);
                     }
 
                     @Override
@@ -250,11 +279,22 @@ public class MapBoxManager {
                     @Override
                     public boolean onMapClick(@NonNull LatLng point) {
 
+                        double lat = -40.567703;
+                        double longitude = -73.170281;
 
-                        LatLng pointOr = new LatLng(-40.567703, -73.170281);
+                        if (mapboxMap.getLocationComponent().getLastKnownLocation() != null) {
+                            Location lastKnownLocation = mapboxMap.getLocationComponent().getLastKnownLocation();
+                            lat = lastKnownLocation.getLatitude();
+                            longitude = lastKnownLocation.getLongitude();
+                        }
+
+                        LatLng pointOr = new LatLng(lat, longitude);
+
                         Point destinationPoint = Point.fromLngLat(point.getLongitude(), point.getLatitude());
                         Point originPoint = Point.fromLngLat(pointOr.getLongitude(), pointOr.getLatitude());
-                        //Point originPoint = Point.fromLngLat(locationComponent.getLastKnownLocation().getLongitude(),locationComponent.getLastKnownLocation().getLatitude());
+                        //Point originPoint = Point.fromLngLat(
+                        // locationComponent.getLastKnownLocation().getLongitude(),
+                        // locationComponent.getLastKnownLocation().getLatitude());
 
                         GeoJsonSource source = mapboxMap.getStyle().getSourceAs("destination-source-id");
                         if (source != null) {
@@ -262,6 +302,7 @@ public class MapBoxManager {
                         }
 
                         getRoute(originPoint, destinationPoint);
+                        TopSheetBehavior.from(topRouteSheet).setState(TopSheetBehavior.STATE_EXPANDED);
 
                         return false;
                     }
@@ -307,7 +348,6 @@ public class MapBoxManager {
                                         new LatLng(Double.parseDouble(latitud), Double.parseDouble(longitud)),
                                         0.015,
                                         200));
-
                             }
                         }
                     }
@@ -315,13 +355,20 @@ public class MapBoxManager {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+
+                navigationMapRoute = new NavigationMapRoute.Builder(mapView, mapboxMap, getLifecycleOwner())
+                        .withMapboxNavigation(mapboxNavigation)
+                        .withVanishRouteLineEnabled(true)
+                        .build();
             }
         });
     }
 
-    private PolygonOptions generatePerimeter(LatLng centerCoordinates, double radiusInKilometers, int numberOfSides) {
+    private PolygonOptions generatePerimeter(LatLng centerCoordinates, double radiusInKilometers,
+                                             int numberOfSides) {
         List<LatLng> positions = new ArrayList<>();
-        double distanceX = radiusInKilometers / (111.319 * Math.cos(centerCoordinates.getLatitude() * Math.PI / 180));
+        double distanceX = radiusInKilometers / (111.319 * Math.cos(centerCoordinates.getLatitude()
+                * Math.PI / 180));
         double distanceY = radiusInKilometers / 110.574;
 
         double slice = (2 * Math.PI) / numberOfSides;
@@ -345,48 +392,46 @@ public class MapBoxManager {
                 .alpha(0.4f);
     }
 
+    public LifecycleOwner getLifecycleOwner() {
+        Activity context = ControllerActivity.activiyAbiertaActual;
+        return (LifecycleOwner) context;
+    }
+
     private void getRoute(Point origin, Point destination) {
-        NavigationRoute.builder(getApplicationContext())
-                .accessToken(Mapbox.getAccessToken())
-                .origin(origin)
-                .destination(destination)
-                .build()
-                .getRoute(new Callback<DirectionsResponse>() {
+
+        List<Point> points = new ArrayList<>();
+        points.add(origin);
+        points.add(destination);
+
+        mapboxNavigation.requestRoutes(
+                RouteOptions.builder()
+                        .accessToken(Mapbox.getAccessToken())
+                        .alternatives(true)
+                        .profile(DirectionsCriteria.PROFILE_DRIVING_TRAFFIC)
+                        .coordinates(points)
+                        .language("es")
+                        .baseUrl("https://api.mapbox.com")
+                        .requestUuid("pk.eyJ1IjoiemVyb2RzIiwiYSI6ImNqZHhnaWlpcTAxa3MycW5xZ2g1dDEydXkifQ.AHkuaAWcgu69eXCwJlLvpw")
+                        .user("zerods")
+                        .build(), new RoutesRequestCallback() {
                     @Override
-                    public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
-// You can get the generic HTTP info about the response
-                        Log.d(TAG, "Response code: " + response.code());
-                        if (response.body() == null) {
-                            Log.e(TAG, "No routes found, make sure you set the right user and access token.");
-                            return;
-                        } else if (response.body().routes().size() < 1) {
-                            Log.e(TAG, "No routes found");
-                            return;
-                        }
+                    public void onRoutesReady(@NotNull List<? extends DirectionsRoute> list) {
 
-                        currentRoute = response.body().routes().get(0);
-                        List<LegStep> directions = currentRoute.legs().get(0).steps();
-                        LegStep dir = directions.get(0);
-
-                        String nameDirection = dir.name();
-                        Double distanceInMts = currentRoute.distance();
-                        Double durationInMinutes = currentRoute.duration();
-
-
-                        // Draw the route on the map
-                        if (navigationMapRoute != null) {
-                            navigationMapRoute.removeRoute();
-                        } else {
-                            navigationMapRoute = new NavigationMapRoute(null, mapView, mapboxMap, R.style.NavigationMapRoute);
-                        }
-                        navigationMapRoute.addRoute(currentRoute);
+                        Log.d("RouteA ---- requestRoutes", "Route created");
+                        navigationMapRoute.addRoutes(list);
                     }
 
                     @Override
-                    public void onFailure(Call<DirectionsResponse> call, Throwable throwable) {
-                        Log.e(TAG, "Error: " + throwable.getMessage());
+                    public void onRoutesRequestFailure(@NotNull Throwable throwable, @NotNull RouteOptions routeOptions) {
+                        Log.d("RouteA", "onRoutesRequestFailure");
                     }
-                });
+
+                    @Override
+                    public void onRoutesRequestCanceled(@NotNull RouteOptions routeOptions) {
+                        Log.d("RouteA", "onRoutesRequestCanceled");
+                    }
+                }
+        );
     }
     /**
      * Add the route and marker sources to the map
@@ -410,12 +455,12 @@ public class MapBoxManager {
         routeLayer.setProperties(
                 lineCap(Property.LINE_CAP_ROUND),
                 lineJoin(Property.LINE_JOIN_ROUND),
-                lineWidth(5f),
+                lineWidth(10f),
                 lineColor(ColorTemplate.getHoloBlue())
         );
         loadedMapStyle.addLayer(routeLayer);
     }
-
+    /*
     private void getRoute(MapboxMap mapboxMap, Point origin, Point destination) {
         client = MapboxDirections.builder()
                 .origin(origin)
@@ -475,7 +520,7 @@ public class MapBoxManager {
             }
         });
     }
-
+*/
     private void verifyStoragePermissions(Activity activity) {
         // Check if permissions are enabled and if not request
         int permissionLocation = ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION);
@@ -488,7 +533,6 @@ public class MapBoxManager {
             else{
                 ActivityCompat.requestPermissions(activity, PERMISSIONS, PERMISSION_ALL);
             }
-
         }
         else
         {
@@ -530,7 +574,94 @@ public class MapBoxManager {
 
     public void findPosition(){
 
-        locationComponent.setCameraMode(CameraMode.TRACKING_GPS);
+        locationComponent.setCameraMode(
+                CameraMode.TRACKING_GPS,
+                3000 /*duration*/,
+                20.0 /*zoom*/,
+                270.0 /*bearing, use current/determine based on the tracking mode*/,
+                40.0 /*tilt*/,
+                null /*transition listener*/);
         locationComponent.zoomWhileTracking(20, 3000);
+    }
+
+
+    private RoutesObserver routesObserver = new RoutesObserver() {
+        @Override
+        public void onRoutesChanged(@NotNull List<? extends DirectionsRoute> list) {
+            Log.d("RouteA ---- onRoutesChanged", "Route created");
+            //navigationMapRoute.addRoutes(list);
+        }
+    };
+
+    @Override
+    public void onRouteProgressChanged(@NotNull RouteProgress routeProgress) {
+        String intr = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().maneuver().instruction();
+        String intr2 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().rotaryName();
+        String intr3 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().destinations();
+        String intr4 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().drivingSide();
+
+        String intr5 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().name();
+
+        String intr6 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().rotaryName();
+        String nextStreetName = routeProgress.getCurrentLegProgress().getUpcomingStep().name();
+
+        List<SpinnerIndNavigationAdapter> arraySteps = new ArrayList<>();
+
+        for (RouteLeg leg : routeProgress.getRoute().legs()) {
+            for (LegStep steps : leg.steps()) {
+                if (steps.maneuver().modifier() != null) {
+
+                    String currentType = steps.maneuver().type();
+                    String currentModifier = steps.maneuver().modifier();
+
+                    if (currentModifier.contains(" ")) {
+                        String[] spl = currentModifier.split(" ");
+                        currentModifier = spl[0] + "_" + spl[1];
+                    }
+                    String currentIconName = "direction_" + currentType + "_" + currentModifier;
+                    arraySteps.add(new SpinnerIndNavigationAdapter(steps.name(), currentIconName));
+                }
+            }
+        }
+
+        AgregarIndicacionesNavegacion(arraySteps);
+        Log.d("RouteB", arraySteps.toString());
+
+        String type = routeProgress.getCurrentLegProgress().getUpcomingStep().maneuver().type();
+        String modifier = routeProgress.getCurrentLegProgress().getUpcomingStep().maneuver().modifier();
+
+        if (modifier.contains(" ")){
+            String[] spl = modifier.split(" ");
+            modifier = spl[0] + "_" + spl[1];
+        }
+
+        String iconName = "direction_" + type + "_" + modifier;
+
+        MainActivity.txtCurrentStreet.setText(intr5);
+
+        //MapFragment mpf = new MapFragment();
+        //mpf.img_navigation_icon.setImageResource(getApplicationContext().getResources().getIdentifier(iconName, "drawable", getApplicationContext().getPackageName()));
+        //mpf.txtRouteInfo.setText(nextStreetName);
+
+        Log.d("RouteA", "Progress: " + intr + " --- "+ intr2 + " --- "+ intr3 + " --- "+ intr4 + " --- "+ intr5 + " --- "+ intr6 + " --- " + nextStreetName + " --- " + iconName);
+    }
+
+    public void AgregarIndicacionesNavegacion(List<SpinnerIndNavigationAdapter> indicationList)
+    {
+        try {
+
+            MapFragment mpf = new MapFragment();
+            CardviewNavigationRoutesAdapter adapter = new CardviewNavigationRoutesAdapter(
+                    getApplicationContext(), indicationList, new CardviewNavigationRoutesAdapter.OnItemClickListener() {
+                @Override
+                public void onItemClicked(int position, int itemPosition, SpinnerIndNavigationAdapter indication) {
+                }
+            });
+
+            mpf.recyclerView_direction_nav.setAdapter(adapter);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

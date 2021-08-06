@@ -33,11 +33,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="#fff"
-                android:textSize="120dp"
+                android:textSize="150dp"
                 android:layout_gravity="center"
                 android:gravity="center"
                 android:text="0"/>
             <TextView
+                android:id="@+id/txtKMFont"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:textColor="#FFFFFF"
@@ -48,6 +49,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/toolbarDividerView"
             android:layout_width="match_parent"
             android:layout_height="2dp"
             android:layout_marginTop="15dp"
@@ -59,7 +61,7 @@
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="35dp"
-                android:layout_weight="1">
+                android:layout_weight="0.1">
                 <TextView
                     android:id="@+id/txtPatente"
                     android:layout_width="wrap_content"
@@ -73,74 +75,37 @@
             </LinearLayout>
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="right"
+                android:layout_height="match_parent"
+                android:gravity="center"
                 android:layout_weight="1"
                 android:orientation="horizontal">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:textColor="#fff"
-                    android:textSize="20dp"
-                    android:layout_marginRight="-10dp"
-                    android:text="240 km"></TextView>
-                <ImageView
-                    android:id="@+id/vector_battery_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:paddingTop="11px"
-                    android:paddingBottom="11px"
-                    android:paddingRight="7px"
-                    android:layout_alignParentLeft="true"
-                    android:src="@drawable/ic_battery_full_black_24dp"/>
-            </LinearLayout>
-        </LinearLayout>
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_marginBottom="20dp"
-            android:background="#474747"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center|top"
-            android:orientation="vertical">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="15dp"
-                android:orientation="horizontal" >
                 <TextView
                     android:id="@+id/txtKMTotales"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:textSize="25dp"
-                    android:gravity="center"
-                    android:text="-"/>
+                    android:paddingTop="20px"
+                    android:paddingRight="23px"
+                    android:textSize="20dp"
+                    android:gravity="right"
+                    android:text=""/>
             </LinearLayout>
         </LinearLayout>
+        <View
+            android:id="@+id/toolbarDividerView2"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="20dp"
+            android:background="#474747"/>
 
         <LinearLayout
             android:id="@+id/txtEnRutaView"
             android:layout_width="match_parent"
             android:layout_height="0dip"
-            android:layout_weight="3"
+            android:layout_weight="2"
             android:gravity="center|top"
             android:orientation="vertical">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="15dp"
-                android:orientation="horizontal" >
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:textSize="25dp"
-                    android:gravity="left"
-                    android:text="En ruta"/>
-            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -149,9 +114,9 @@
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:gravity="left"
+                    android:gravity="center"
                     android:layout_marginLeft="15dp"
-                    android:layout_weight="0.4">
+                    android:layout_weight="0.03">
                     <ImageView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
@@ -163,12 +128,12 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1">
                     <TextView
-                        android:id="@+id/txtKmtRecorridosPorRuta"
+                        android:id="@+id/txtCurrentStreet"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:textSize="25dp"
-                        android:gravity="left"
-                        android:text="0.0 km"/>
+                        android:gravity="center"
+                        android:text=""/>
                 </LinearLayout>
             </LinearLayout>
             <LinearLayout
@@ -205,7 +170,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dip"
-            android:layout_weight="3"
+            android:layout_weight="0.5"
             android:gravity="center|bottom"
             android:orientation="vertical" >
             <LinearLayout
@@ -214,6 +179,7 @@
                 android:orientation="vertical" >
 
                 <View
+                    android:id="@+id/toolbarDividerView3"
                     android:layout_width="match_parent"
                     android:layout_height="2dp"
                     android:layout_marginTop="15dp"
@@ -223,51 +189,60 @@
                     android:layout_height="fill_parent"
                     android:orientation="horizontal">
                     <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="fill_parent"
+                        android:layout_weight="0.3"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                    </LinearLayout>
+                    <LinearLayout
                         android:id="@+id/lLayoutCerrarSesion"
                         android:layout_width="0dp"
                         android:layout_height="fill_parent"
+                        android:layout_weight="0.3"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <ImageView
+                            android:id="@+id/imgThemeSun"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:layout_alignParentLeft="true"
+                            android:src="@drawable/ic_sun_black_24dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="fill_parent"
                         android:layout_weight="1"
                         android:gravity="center"
                         android:orientation="vertical">
-                        <TextView
+                        <com.suke.widget.SwitchButton
+                            android:id="@+id/switch_button"
+                            android:layout_marginLeft="5dp"
+                            android:layout_marginRight="5dp"
+                            app:sb_button_color="#00C853"
+                            app:sb_background="#FFF"
+                            app:sb_checkline_color="#FFFFFF"
+                            app:sb_checked_color="#FFFFFF"
+                            app:sb_uncheckcircle_color="#000000"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textSize="20dp"
-                            android:gravity="center"
-                            android:text="DEV"/>
-                        <!--
-                                        <ImageView
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:layout_alignParentLeft="true"
-                            android:src="@drawable/ic_baseline_exit_to_app_24"/>
-                        -->
+                            android:layout_height="wrap_content"/>
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="fill_parent"
-                        android:layout_weight="1"
+                        android:layout_weight="0.3"
                         android:gravity="center"
                         android:orientation="vertical">
-                        <!--
-                                       <ImageView
+                        <ImageView
+                            android:id="@+id/imgThemeMoon"
                             android:layout_width="wrap_content"
                             android:layout_height="match_parent"
                             android:layout_alignParentLeft="true"
-                            android:src="@drawable/ic_settings"/>
-                        -->
+                            android:src="@drawable/ic_moon_black_24dp"/>
                     </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="fill_parent"
-                        android:layout_weight="1"
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="fill_parent"
+                        android:layout_weight="0.3"
                         android:gravity="center"
                         android:orientation="vertical">
-                        <!--
-                                      <ImageView
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:layout_alignParentLeft="true"
-                            android:src="@drawable/ic_baseline_bluetooth_searching_24"/>
-                        -->
                     </LinearLayout>
-
                 </LinearLayout>
 
             </LinearLayout>
@@ -277,42 +252,3 @@
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-
-<!--
-
-
-                <LinearLayout
-                    android:id="@+id/lLayoutCerrarSesion"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:textSize="20dp"
-                        android:gravity="center"
-                        android:text="CERRAR SESIÓN"/>
-                </LinearLayout>
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:paddingTop="9px"
-                android:paddingBottom="9px"
-                android:paddingLeft="6px"
-                android:paddingRight="6px"
-                android:layout_alignParentLeft="true"
-                android:src="@drawable/ic_moon_black_24dp"/>
-            <com.suke.widget.SwitchButton
-                android:id="@+id/switch_button"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"/>
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:paddingTop="9px"
-                android:paddingBottom="9px"
-                android:paddingLeft="6px"
-                android:paddingRight="6px"
-                android:layout_alignParentLeft="true"
-                android:src="@drawable/ic_sun_black_24dp"/>
--->

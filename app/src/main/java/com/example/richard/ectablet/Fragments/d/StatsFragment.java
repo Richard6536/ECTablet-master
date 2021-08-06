@@ -7,6 +7,8 @@ import android.graphics.Paint;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.core.content.ContextCompat;
 
@@ -18,6 +20,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -53,7 +56,14 @@ import static android.content.ContentValues.TAG;
 
 public class StatsFragment extends Fragment {
     LineChart mChart, mChartCorriente, mChartRin;
+    public static ConstraintLayout content_general_stats;
+    public static ImageView imgWaveStats;
     private boolean moveToLastEntry = true;
+
+    public static TextView txtCorrienteText, txtVoltajeText;
+
+    public static XAxis xAxisVoltaje, xAxisCorriente;
+    public static YAxis yAxisVoltaje, yAxisCorriente;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -63,6 +73,12 @@ public class StatsFragment extends Fragment {
 
         mChart = view.findViewById(R.id.chart);
         mChartCorriente = view.findViewById(R.id.chartCorriente);
+        content_general_stats = view.findViewById(R.id.content_general_stats);
+        imgWaveStats = view.findViewById(R.id.imgWaveStats);
+
+        txtCorrienteText = view.findViewById(R.id.txtCorrienteText);
+        txtVoltajeText = view.findViewById(R.id.txtVoltajeText);
+
         //mChartRin = view.findViewById(R.id.chartRin);
 
         startChart();
@@ -113,17 +129,17 @@ public class StatsFragment extends Fragment {
         l.setForm(Legend.LegendForm.LINE);
         l.setTextColor(Color.WHITE);
 
-        XAxis xl = mChart.getXAxis();
-        xl.setTextColor(Color.WHITE);
-        xl.setDrawGridLines(false);
-        xl.setAvoidFirstLastClipping(true);
-        xl.setEnabled(true);
+        xAxisVoltaje = mChart.getXAxis();
+        xAxisVoltaje.setTextColor(Color.WHITE);
+        xAxisVoltaje.setDrawGridLines(false);
+        xAxisVoltaje.setAvoidFirstLastClipping(true);
+        xAxisVoltaje.setEnabled(true);
 
-        YAxis leftAxis = mChart.getAxisLeft();
-        leftAxis.setTextColor(Color.WHITE);
-        leftAxis.setAxisMaximum(600f);
-        leftAxis.setAxisMinimum(0f);
-        leftAxis.setDrawGridLines(true);
+        yAxisVoltaje = mChart.getAxisLeft();
+        yAxisVoltaje.setTextColor(Color.WHITE);
+        yAxisVoltaje.setAxisMaximum(600f);
+        yAxisVoltaje.setAxisMinimum(0f);
+        yAxisVoltaje.setDrawGridLines(true);
 
         YAxis rightAxis = mChart.getAxisRight();
         rightAxis.setEnabled(false);
@@ -210,17 +226,17 @@ public class StatsFragment extends Fragment {
         l.setForm(Legend.LegendForm.LINE);
         l.setTextColor(Color.WHITE);
 
-        XAxis xl = mChartCorriente.getXAxis();
-        xl.setTextColor(Color.WHITE);
-        xl.setDrawGridLines(false);
-        xl.setAvoidFirstLastClipping(true);
-        xl.setEnabled(true);
+        xAxisCorriente = mChartCorriente.getXAxis();
+        xAxisCorriente.setTextColor(Color.WHITE);
+        xAxisCorriente.setDrawGridLines(false);
+        xAxisCorriente.setAvoidFirstLastClipping(true);
+        xAxisCorriente.setEnabled(true);
 
-        YAxis leftAxis = mChartCorriente.getAxisLeft();
-        leftAxis.setTextColor(Color.WHITE);
-        leftAxis.setAxisMaximum(100f);
-        leftAxis.setAxisMinimum(-100f);
-        leftAxis.setDrawGridLines(true);
+        yAxisCorriente = mChartCorriente.getAxisLeft();
+        yAxisCorriente.setTextColor(Color.WHITE);
+        yAxisCorriente.setAxisMaximum(100f);
+        yAxisCorriente.setAxisMinimum(-100f);
+        yAxisCorriente.setDrawGridLines(true);
 
         YAxis rightAxis = mChartCorriente.getAxisRight();
         rightAxis.setEnabled(false);

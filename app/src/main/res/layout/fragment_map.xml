@@ -12,21 +12,44 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
     </com.mapbox.mapboxsdk.maps.MapView>
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="40px"
+        android:layout_marginTop="73px">
+        <LinearLayout
+            android:id="@+id/layoutSheetTop"
+            android:layout_width="300dp"
+            android:layout_height="400dp"
+            android:orientation="vertical"
+            android:background="@drawable/rounded_top_sheet"
+            app:behavior_hideable="true"
+            app:behavior_peekHeight="400dp"
+            android:gravity="top"
+            app:layout_behavior=".Adapters.TopSheetBehavior">
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView_direction_nav"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="34dp"></androidx.recyclerview.widget.RecyclerView>
+        </LinearLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <RelativeLayout
+        android:id="@+id/relativeDrawableSearch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/rounded_map_search"
-        android:layout_marginLeft="50px"
-        android:layout_marginTop="50px">
+        android:layout_marginLeft="40px"
+        android:layout_marginTop="35px">
         <fragment
             android:id="@+id/autocomplete_fragment"
             android:layout_width="300dp"
             android:layout_height="wrap_content"
             android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
             />
-    </RelativeLayout>
 
+    </RelativeLayout>
 
     <!--
 

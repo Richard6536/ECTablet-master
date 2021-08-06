@@ -1,14 +1,7 @@
 package com.example.richard.ectablet.Fragments.d;
 
 import android.animation.ValueAnimator;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.Shape;
 import android.os.Bundle;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -18,7 +11,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.ImageView;
@@ -28,29 +20,33 @@ import android.widget.TextView;
 import com.example.richard.ectablet.R;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 
-import java.util.concurrent.TimeUnit;
-
 public class BatteryFragment extends Fragment {
 
-    public TextView txtRPM, txtTempMotor, txtPosAcelerador, txtVoltaje, txtBatteryLife, txtBatteryCurrent,
-            txtSoh, txtCumulativeChar, txtCumulativeDisc;
-    public ImageView imageViewCar;
+    public static TextView txtRPM, txtVoltaje, txtBatteryLife, txtBatteryCurrent,
+            txtSoh, txtTempController, txtTempMotor;
+
+    public static TextView txtSohMensaje, txtRPMMensaje, batteryCurrentMensaje, txtCumulativeCharMensaje,
+            txtCumulativeDiscMensaje;
+
+    public static ImageView imageViewCar;
 
     public float xCurrentPos, yCurrentPos;
-
     public float xCurrentPosVolt, yCurrentPosVolt;
 
-    public ConstraintLayout layoutSquareBattery, layoutSquareBattery2;
-
+    public static ImageView viewWavesBattery;
+    public static ConstraintLayout layoutSquareBattery, layoutSquareBattery2, content_general;
     public LinearLayout batteryVolt, batteryTemp, rpmMotor, batterySoh, cumulativeChar, cumulativeDisc;
+
     CircularProgressBar circularProgressBar;
+
+    public float SOCActual = -1;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_battery, container, false);
-
+        viewWavesBattery = view.findViewById(R.id.imgWaveBattery);
         imageViewCar = view.findViewById(R.id.imageViewCarVector);
 
         batteryVolt = view.findViewById(R.id.voltageBattery);
@@ -61,8 +57,16 @@ public class BatteryFragment extends Fragment {
         cumulativeChar = view.findViewById(R.id.cumulativeChar);
         cumulativeDisc = view.findViewById(R.id.cumulativeDisc);
 
+        txtCumulativeDiscMensaje = view.findViewById(R.id.txtCumulativeDiscMensaje);
+        txtCumulativeCharMensaje = view.findViewById(R.id.txtCumulativeCharMensaje);
+        batteryCurrentMensaje = view.findViewById(R.id.batteryCurrentMensaje);
+        txtRPMMensaje = view.findViewById(R.id.txtRPMMensaje);
+        txtSohMensaje = view.findViewById(R.id.txtSohMensaje);
+
         layoutSquareBattery = view.findViewById(R.id.layoutSquareBattery);
         layoutSquareBattery2 = view.findViewById(R.id.layoutSquareBattery2);
+
+        content_general = view.findViewById(R.id.content_general);
 
         txtBatteryLife = view.findViewById(R.id.txtBatteryLife);
 
@@ -71,8 +75,8 @@ public class BatteryFragment extends Fragment {
         txtRPM = view.findViewById(R.id.txtRPM);
 
         txtSoh = view.findViewById(R.id.txtSoh);
-        txtCumulativeChar = view.findViewById(R.id.txtCumulativeChar);
-        txtCumulativeDisc = view.findViewById(R.id.txtCumulativeDisc);
+        txtTempController = view.findViewById(R.id.txtTempController);
+        txtTempMotor = view.findViewById(R.id.txtTempMotor);
 
         xCurrentPos = imageViewCar.getLeft();
         yCurrentPos = imageViewCar.getTop();
@@ -80,7 +84,6 @@ public class BatteryFragment extends Fragment {
         circularProgressBar = view.findViewById(R.id.circularProgressBar);
         // Set Progress
         //circularProgressBar.setProgress(0f);
-
 
         // Set Progress Max
         circularProgressBar.setProgressMax(200f);
@@ -116,20 +119,53 @@ public class BatteryFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        if(SOCActual > 0)
+            setSOCProgress();
 
     }
 
-    public void putArguments(Bundle args2){
-        //String velocidad = args.getString("VEL");
-        //String rpm = args.getString("RPM");
-        //String massAirFlow = args.getString("MASS_AIRFLOW");
+    public void putArguments(Bundle args2) {
 
-        //txtRPM.setText(velocidad);
-        //txtTempMotor.setText(rpm);
-        //txtPosAcelerador.setText(massAirFlow);
+        String rpm = args2.getString("RPM");
+        String soc = args2.getString("SOC");
+        String volt = args2.getString("VOLT");
+        String tempMotor = args2.getString("TEMPMOTOR");
+        String tempController = args2.getString("TEMPCONTROLLER");
 
-        String voltaje = args2.getString("VOLTAJE");
-        txtVoltaje.setText(voltaje + " V");
+        txtBatteryLife.setText(soc+"%");
+        txtVoltaje.setText(volt);
+        txtRPM.setText(rpm);
+        txtTempMotor.setText(tempMotor + " C°");
+        txtTempController.setText(tempController + " C°");
+
+        try
+        {
+            float socFloat = Float.parseFloat(soc);
+
+            if(SOCActual != socFloat){
+                SOCActual = socFloat;
+                setSOCProgress();
+            }
+        }
+        catch (Exception e){ }
+    }
+
+    public void setSOCProgress(){
+
+        circularProgressBar.setProgressWithAnimation(SOCActual, Long.valueOf(1000)); // =1s
+
+        if(SOCActual > 45.0){
+            circularProgressBar.setProgressBarColorStart(Color.GREEN);
+            circularProgressBar.setProgressBarColorEnd(Color.WHITE);
+        }
+        else if(SOCActual > 25.0 && SOCActual <= 45.0){
+            circularProgressBar.setProgressBarColorStart(Color.YELLOW);
+            circularProgressBar.setProgressBarColorEnd(Color.WHITE);
+        }
+        else if(SOCActual <= 25.0){
+            circularProgressBar.setProgressBarColorStart(Color.RED);
+            circularProgressBar.setProgressBarColorEnd(Color.WHITE);
+        }
     }
 
 
@@ -147,15 +183,15 @@ public class BatteryFragment extends Fragment {
             float socFloat = Float.parseFloat(stateOfChargedValue);
             circularProgressBar.setProgressWithAnimation(socFloat, Long.valueOf(1000)); // =1s
 
-            if(socFloat > 51.0){
+            if(socFloat > 45.0){
                 circularProgressBar.setProgressBarColorStart(Color.GREEN);
                 circularProgressBar.setProgressBarColorEnd(Color.WHITE);
             }
-            else if(socFloat > 31.0 && socFloat < 51.0){
+            else if(socFloat > 25.0 && socFloat <= 45.0){
                 circularProgressBar.setProgressBarColorStart(Color.YELLOW);
                 circularProgressBar.setProgressBarColorEnd(Color.WHITE);
             }
-            else if(socFloat < 31.0){
+            else if(socFloat <= 25.0){
                 circularProgressBar.setProgressBarColorStart(Color.RED);
                 circularProgressBar.setProgressBarColorEnd(Color.WHITE);
             }
@@ -168,8 +204,6 @@ public class BatteryFragment extends Fragment {
         txtRPM.setText(driveMotorSpd1Value);
 
         txtSoh.setText(stateOfHealthBValue+"%");
-        txtCumulativeChar.setText(cumulativeCharValue);
-        txtCumulativeDisc.setText(cumulativeDiscValue);
     }
 
     public void animationCar(){

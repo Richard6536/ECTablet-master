@@ -39,7 +39,6 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
-import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
@@ -64,7 +63,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private static final int REQUEST_CODE_AUTOCOMPLETE = 1;
     private MapboxMap mapboxMap;
-    SymbolManager symbolManager;
 
     GeoJsonSource geoJsonSource;
     SymbolLayer symbolLayer;

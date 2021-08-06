@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="CustomNavigationMapRoute">
+        <!-- Color of the primary route -->
+        <item name="routeColor">@color/mapbox_navigation_route_layer_blue</item>
+        <!-- Color of low traffic congestion
+        <item name="routeLowCongestionColor">@color/mapbox_navigation_route_layer_blue</item> -->
+        <!-- Color of unknown traffic congestion on primary route
+        <item name="routeUnknownCongestionColor">@color/mapbox_navigation_route_layer_congestion_unknown</item> -->
+        <!-- Color of moderate traffic congestion on primary route -->
+        <item name="routeModerateCongestionColor">@color/mapbox_navigation_route_layer_congestion_red</item>
+        <!-- Color of heavy traffic congestion on primary route
+        <item name="routeHeavyCongestionColor">@color/mapbox_navigation_route_layer_congestion_heavy</item>-->
+        <!-- Color of severe traffic congestion on primary route -->
+        <item name="routeSevereCongestionColor">@color/colorAccent</item>
+        <!-- Color of primary route shield -->
+        <!-- Color of primary route traveled
+        <item name="routeLineTraveledColor">@color/mapbox_navigation_route_line_traveled_color</item> -->
+        <!-- Color of primary route shield traveled
+        <item name="routeLineShieldTraveledColor">@color/mapbox_navigation_route_shield_line_traveled_color</item> -->
+        <!-- Color of alternative route -->
+        <item name="alternativeRouteColor">#F4E76D</item>
+        <!-- Color of unknown traffic congestion on alternate route
+        <item name="alternativeRouteUnknownCongestionColor">@color/mapbox_navigation_route_alternative_congestion_unknown</item> -->
+        <!-- Color of low traffic congestion on alternate route
+        <item name="alternativeRouteLowCongestionColor">@color/mapbox_navigation_route_alternative_color</item> -->
+        <!-- Color of moderate traffic congestion on alternate route -->
+        <item name="alternativeRouteModerateCongestionColor">@color/mapbox_navigation_route_alternative_congestion_yellow</item>
+        <!-- Color of heavy traffic congestion on alternate route
+        <item name="alternativeRouteHeavyCongestionColor">@color/mapbox_navigation_route_alternative_congestion_heavy</item> -->
+        <!-- Color of severe traffic congestion on alternate route -->
+        <item name="alternativeRouteSevereCongestionColor">@color/mapbox_navigation_route_alternative_congestion_red</item>
+        <!-- Color of alternative route shield -->
+        <!-- Scaling factor of primary route line -->
+        <item name="routeScale">1.0</item>
+        <!-- Scaling factor of traffic on route line
+        <item name="routeTrafficScale">1.0</item> -->
+        <!-- Scaling factor of alternative route line -->
+        <item name="alternativeRouteScale">1.0</item>
+        <!-- Color of upcoming maneuver arrow -->
+        <item name="upcomingManeuverArrowColor">@color/mapbox_navigation_route_upcoming_maneuver_arrow_color</item>
+        <!-- Color of upcoming maneuver arrow border -->
+        <item name="upcomingManeuverArrowBorderColor">@color/mapbox_navigation_route_upcoming_maneuver_arrow_border_color</item>
+        <!-- Expression styling -->
+        <item name="roundedLineCap">true</item>
+    </style>
+</resources>
