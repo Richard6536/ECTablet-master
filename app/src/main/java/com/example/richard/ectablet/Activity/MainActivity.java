@@ -31,6 +31,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -61,12 +62,14 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int DISCOVERABLE_REQUEST_CODE = 2;
 
+    public static boolean VEHICULO_APAGADO = true;
+
     public Intent locationIntent;
     public View layout_toolbar;
     public LinearLayout topBar;
 
     public FloatingActionButton fab;
-    public View toolbarDividerView, toolbarDividerView2, toolbarDividerView3;
+    public View toolbarDividerView, toolbarDividerView2, toolbarDividerView3, toolbarDividerView0;
 
     HideStatusBarNavigation hideStatusBarNavigation = new HideStatusBarNavigation();
     public View mContentView;
@@ -77,18 +80,16 @@ public class MainActivity extends AppCompatActivity {
     //final NavigationFragment mapFragment = new NavigationFragment();
     final MapFragment mapFragment = new MapFragment();
     final BatteryFragment batteryFragment = new BatteryFragment();
-    final StatsFragment statsFragment = new StatsFragment();
+    //final StatsFragment statsFragment = new StatsFragment();
     final FragmentManager fm = getSupportFragmentManager();
     Fragment active = mapFragment;
 
     BottomNavigationView bottomNavigation;
 
-    public static TextView txtCurrentStreet;
+    public static TextView kmRecorridosText, txtRPM;
 
-    public TextView kmVelText, txtPatente, tiempoRecorridoPorRuta, txtViewGPS,
-            txtViewWifi, txtKMTotales, txtKMFont;
-
-    public LinearLayout txtEnRutaView;
+    public TextView kmVelText, txtPatente, txtViewGPS,
+            txtViewWifi, txtKMFont;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,14 +117,7 @@ public class MainActivity extends AppCompatActivity {
 
         kmVelText = (TextView) findViewById(R.id.velocidad_km_text);
         txtPatente = (TextView) findViewById(R.id.txtPatente);
-        txtKMTotales = (TextView) findViewById(R.id.txtKMTotales);
-
-        txtEnRutaView = (LinearLayout) findViewById(R.id.txtEnRutaView);
-
-        txtCurrentStreet = (TextView) findViewById(R.id.txtCurrentStreet);
-        txtEnRutaView.setVisibility(View.INVISIBLE);
-
-        tiempoRecorridoPorRuta = (TextView) findViewById(R.id.tiempoRecorridoPorRuta);
+        kmRecorridosText = findViewById(R.id.kmRecorridosText);
 
         imgViewGPS = (ImageView)findViewById(R.id.imgViewGPS);
         txtViewGPS = (TextView) findViewById(R.id.txtViewGPS);
@@ -131,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
         imgViewWifi = (ImageView)findViewById(R.id.imgViewWifi);
         txtViewWifi = (TextView) findViewById(R.id.txtViewWifi);
 
+        toolbarDividerView0 = findViewById(R.id.toolbarDividerView0);
         toolbarDividerView = findViewById(R.id.toolbarDividerView);
         toolbarDividerView2 = findViewById(R.id.toolbarDividerView2);
         toolbarDividerView3 = findViewById(R.id.toolbarDividerView3);
@@ -144,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
         imgViewCloud = findViewById(R.id.imgViewCloud);
 
         txtKMFont = findViewById(R.id.txtKMFont);
+        txtRPM = findViewById(R.id.txtRPM);
 
         LinearLayout lLayoutCerrarSesion = (LinearLayout)findViewById(R.id.lLayoutCerrarSesion);
         lLayoutCerrarSesion.setOnClickListener(new View.OnClickListener() {
@@ -213,28 +209,26 @@ public class MainActivity extends AppCompatActivity {
                 mMessageReceiver, new IntentFilter("intentKey"));
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
+                mMessageReceiverStatus, new IntentFilter("intentKey_status"));
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(
                 mMessageLocationReceiver, new IntentFilter("intentKey2"));
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                dataOBD2Receiver, new IntentFilter("intentKey_OBD2"));
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(
-                dataKeyOBD2, new IntentFilter("intentKeyOBD2"));
 
         //Se solicitan permisos al usuario para hacer uso del Bluetooth
-        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-        startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
+        //Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        //discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+        //startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
 
-        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
+        //BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        /*
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, DISCOVERABLE_REQUEST_CODE);
         }
         else{
             //iniciarServicioOBD2();
-        }
+        }*/
 
         com.suke.widget.SwitchButton switchButton = (com.suke.widget.SwitchButton) findViewById(R.id.switch_button);
 
@@ -272,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void AddFragmentsToBeginTransaction(){
-        fm.beginTransaction().add(R.id.container, statsFragment, "3").hide(statsFragment).commit();
+        //fm.beginTransaction().add(R.id.container, statsFragment, "3").hide(statsFragment).commit();
         fm.beginTransaction().add(R.id.container, batteryFragment, "2").hide(batteryFragment).commit();
         fm.beginTransaction().add(R.id.container,mapFragment, "1").commit();
     }
@@ -325,12 +319,24 @@ public class MainActivity extends AppCompatActivity {
                     if(active != batteryFragment){
                         fm.beginTransaction().hide(active).show(batteryFragment).commit();
                         active = batteryFragment;
-                        batteryFragment.animationCar();
+
                         try {
-                            batteryFragment.animationIcons();
-                            batteryFragment.animationTextView(ValueAnimator.ofFloat(0f, 1f), 1500);
-                            batteryFragment.animationViews(ValueAnimator.ofFloat(0f, 1f), 1500);
-                            batteryFragment.setSOCProgress();
+
+                            if(!VEHICULO_APAGADO){
+                                batteryFragment.animationCar(700);
+                                batteryFragment.animationIcons(535, 620);
+                                batteryFragment.animationTextView(ValueAnimator.ofFloat(0f, 1f), 1500);
+                                batteryFragment.animationViews(ValueAnimator.ofFloat(0f, 1f), 1500);
+                                batteryFragment.setSOCProgress();
+                            }
+                            else {
+                                batteryFragment.animationCar(250);
+                                batteryFragment.animationIcons(0, 0);
+                                batteryFragment.animationTextView(ValueAnimator.ofFloat(1f, 0f), 1500);
+                                batteryFragment.animationViews(ValueAnimator.ofFloat(1f, 0f), 1500);
+                                batteryFragment.setSOCProgress();
+                            }
+
                             
                         } catch (InterruptedException e) {
                             e.printStackTrace();
@@ -339,10 +345,13 @@ public class MainActivity extends AppCompatActivity {
 
                     return true;
 
+                    /*
                 case R.id.action_stats:
                     fm.beginTransaction().hide(active).show(statsFragment).commit();
                     active = statsFragment;
                     return true;
+
+                   */
             }
             return false;
         }
@@ -402,6 +411,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void iniciarServicioOBD2(){
+
         Intent intent = new Intent(getBaseContext(), BluetoothReceiveService.class);
         startService(intent);
     }
@@ -445,12 +455,14 @@ public class MainActivity extends AppCompatActivity {
                 String volt = intent.getStringExtra("VOLT");
                 String tempMotor = intent.getStringExtra("TEMPMOTOR");
                 String tempController = intent.getStringExtra("TEMPCONTROLLER");
+                String current = intent.getStringExtra("CURRENT");
+                String kmtrip = intent.getStringExtra("KMTRIP");
 
                 Log.d("BTRESULT","Recibiendo...");
 
                 DecimalFormat df = new DecimalFormat("#.#");
 
-
+                /*
                 String tempMotorDecimal = "0.0";
                 String tempControllerDecimal = "0.0";
 
@@ -461,7 +473,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 catch (Exception e){
                     Log.d("ThreadConnection_BT", e.getMessage());
-                }
+                }*/
 
                 Bundle args = new Bundle();
                 args.putString("RPM", rpm);
@@ -470,10 +482,11 @@ public class MainActivity extends AppCompatActivity {
                 args.putString("VOLT", volt);
                 args.putString("TEMPMOTOR", tempMotor);
                 args.putString("TEMPCONTROLLER", tempController);
-
+                args.putString("CURRENT", current);
 
                 batteryFragment.putArguments(args);
                 kmVelText.setText(vel+"");
+                kmRecorridosText.setText(kmtrip + " MTS.");
             }
             catch (Exception e){
 
@@ -492,23 +505,6 @@ public class MainActivity extends AppCompatActivity {
             String fecha = intent.getStringExtra("FECHA");
 
             boolean nuevaRuta = intent.getBooleanExtra("RUTA_NUEVA", false);
-
-            try{
-
-                Double kmDouble = Double.parseDouble(distancia) / 1000;
-                String kmRecorridosDecimals =  new DecimalFormat("#.##").format(kmDouble);
-
-                if(nuevaRuta){
-                    txtEnRutaView.setVisibility(View.VISIBLE);
-                }
-
-                //kmVelText.setText(velocidad);
-                //txtRecorridoRuta.setText(kmRecorridosDecimals + " km.");
-                tiempoRecorridoPorRuta.setText(fecha);
-            }
-            catch (Exception e){
-
-            }
         }
     };
 
@@ -557,6 +553,24 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+
+    private BroadcastReceiver mMessageReceiverStatus = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            int status = intent.getIntExtra("STATUS", -1);
+
+            Bundle args = new Bundle();
+
+            args.putInt("STATUS", status);
+            try {
+                batteryFragment.putArgumentsSTATUS(args);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    };
 
     private BroadcastReceiver dataKeyOBD2 = new BroadcastReceiver() {
 
@@ -663,7 +677,6 @@ public class MainActivity extends AppCompatActivity {
 
         String kmRecorridosDecimals =  new DecimalFormat("#.##").format(Double.parseDouble(kmRecorridos));
         Log.d("KMR", kmRecorridosDecimals);
-        txtKMTotales.setText(kmRecorridosDecimals + " km.");
     }
 
     public void DayTheme(){
@@ -678,9 +691,7 @@ public class MainActivity extends AppCompatActivity {
         //Side Toolbar
         layout_toolbar.setBackgroundColor(themeDayBackground);
         kmVelText.setTextColor(themeDayText);
-        txtKMTotales.setTextColor(themeDayText);
         txtPatente.setTextColor(themeDayText);
-        txtCurrentStreet.setTextColor(themeDayText);
         txtViewGPS.setTextColor(themeDayText);
         txtViewWifi.setTextColor(themeDayText);
         fab.setBackgroundTintList(ColorStateList.valueOf(Color
@@ -712,6 +723,8 @@ public class MainActivity extends AppCompatActivity {
         topBar.setBackgroundColor(themeDayBackground);
 
         toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
         toolbarDividerView2.setBackgroundColor(themeDayDivider);
         toolbarDividerView3.setBackgroundColor(themeDayDivider);
 
@@ -723,16 +736,16 @@ public class MainActivity extends AppCompatActivity {
         drawableSheet.mutate();
         drawableSheet.setColor(themeDaySheetTransparent);
 
-        statsFragment.content_general_stats.setBackgroundColor(themeDayBackground);
-        statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
-        statsFragment.xAxisVoltaje.setTextColor(themeDayText);
-        statsFragment.yAxisVoltaje.setTextColor(themeDayText);
+        //statsFragment.content_general_stats.setBackgroundColor(themeDayBackground);
+        //gment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
+        //statsFragment.xAxisVoltaje.setTextColor(themeDayText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeDayText);
 
-        statsFragment.xAxisCorriente.setTextColor(themeDayText);
-        statsFragment.yAxisCorriente.setTextColor(themeDayText);
+        //statsFragment.xAxisCorriente.setTextColor(themeDayText);
+        //statsFragment.yAxisCorriente.setTextColor(themeDayText);
 
-        statsFragment.txtCorrienteText.setTextColor(themeDayText);
-        statsFragment.txtVoltajeText.setTextColor(themeDayText);
+        //statsFragment.txtCorrienteText.setTextColor(themeDayText);
+        //statsFragment.txtVoltajeText.setTextColor(themeDayText);
 
         batteryFragment.content_general.setBackgroundColor(themeDayBackground);
         batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_white);
@@ -741,15 +754,17 @@ public class MainActivity extends AppCompatActivity {
         batteryFragment.txtTempMotor.setTextColor(themeDayText);
         batteryFragment.txtTempController.setTextColor(themeDayText);
         batteryFragment.txtSoh.setTextColor(themeDayText);
-        batteryFragment.txtRPM.setTextColor(themeDayText);
         batteryFragment.txtVoltaje.setTextColor(themeDayText);
-        batteryFragment.txtBatteryCurrent.setTextColor(themeDayText);
 
-        batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeDayText);
+        mapFragment.imgDirectionStreet.setColorFilter(themeDayText);
+        mapFragment.txtDirectionStreet.setTextColor(themeDayText);
+        mapFragment.txtDuration.setTextColor(themeDayText);
+        mapFragment.txtDistance.setTextColor(themeDayText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeDayText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeDayText);
         batteryFragment.txtSohMensaje.setTextColor(themeDayText);
-        batteryFragment.txtRPMMensaje.setTextColor(themeDayText);
-        batteryFragment.txtCumulativeCharMensaje.setTextColor(themeDayText);
-        batteryFragment.batteryCurrentMensaje.setTextColor(themeDayText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeDayText);
 
         batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
         batteryFragment.layoutSquareBattery2.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
@@ -776,9 +791,7 @@ public class MainActivity extends AppCompatActivity {
         //Side Toolbar
         layout_toolbar.setBackgroundColor(themeNightBackground);
         kmVelText.setTextColor(themeNightText);
-        txtKMTotales.setTextColor(themeNightText);
         txtPatente.setTextColor(themeNightText);
-        txtCurrentStreet.setTextColor(themeNightText);
         txtViewGPS.setTextColor(themeNightText);
         txtViewWifi.setTextColor(themeNightText);
         fab.setBackgroundTintList(ColorStateList.valueOf(Color
@@ -813,6 +826,8 @@ public class MainActivity extends AppCompatActivity {
         topBar.setBackgroundColor(themeNightBackground);
 
         toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
         toolbarDividerView2.setBackgroundColor(themeDayDivider);
         toolbarDividerView3.setBackgroundColor(themeDayDivider);
 
@@ -824,16 +839,16 @@ public class MainActivity extends AppCompatActivity {
         drawableSheet.mutate();
         drawableSheet.setColor(themeDaySheetTransparent);
 
-        statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
-        statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+        //statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
+        //statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
 
-        statsFragment.xAxisVoltaje.setTextColor(themeNightText);
-        statsFragment.yAxisVoltaje.setTextColor(themeNightText);
-        statsFragment.xAxisCorriente.setTextColor(themeNightText);
-        statsFragment.yAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.xAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.xAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.yAxisCorriente.setTextColor(themeNightText);
 
-        statsFragment.txtCorrienteText.setTextColor(themeNightText);
-        statsFragment.txtVoltajeText.setTextColor(themeNightText);
+        //statsFragment.txtCorrienteText.setTextColor(themeNightText);
+        //statsFragment.txtVoltajeText.setTextColor(themeNightText);
 
         batteryFragment.content_general.setBackgroundColor(themeNightBackground);
         batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_2);
@@ -842,15 +857,17 @@ public class MainActivity extends AppCompatActivity {
         batteryFragment.txtTempMotor.setTextColor(themeNightText);
         batteryFragment.txtTempController.setTextColor(themeNightText);
         batteryFragment.txtSoh.setTextColor(themeNightText);
-        batteryFragment.txtRPM.setTextColor(themeNightText);
         batteryFragment.txtVoltaje.setTextColor(themeNightText);
-        batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
 
-        batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
+        mapFragment.imgDirectionStreet.setColorFilter(themeNightText);
+        mapFragment.txtDirectionStreet.setTextColor(themeNightText);
+        mapFragment.txtDuration.setTextColor(themeNightText);
+        mapFragment.txtDistance.setTextColor(themeNightText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
         batteryFragment.txtSohMensaje.setTextColor(themeNightText);
-        batteryFragment.txtRPMMensaje.setTextColor(themeNightText);
-        batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
-        batteryFragment.batteryCurrentMensaje.setTextColor(themeNightText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
 
         batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
         batteryFragment.layoutSquareBattery2.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
@@ -863,5 +880,11 @@ public class MainActivity extends AppCompatActivity {
         path1.setFillColor(themeDayWaves);
         */
     }
+    public int getChargingStatus(byte val){
+        String binary_str = Integer.toBinaryString((val & 0xFF) + 0x100).substring(1);
+        int binaryInt = Integer.parseInt(binary_str);
+        int[] bits = Integer.toString(binaryInt).chars().map(c -> c-'0').toArray();
 
+        return bits[1];
+    }
 }

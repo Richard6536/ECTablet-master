@@ -56,18 +56,98 @@
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/layoutSquareBattery2"
                     android:layout_marginTop="210dp"
-                    android:layout_height="420dp"
+                    android:layout_height="500dp"
                     android:orientation="vertical"
                     android:backgroundTint="@color/colorSquareNight"
                     android:background="@drawable/ic_square2"
                     android:layout_width="fill_parent">
 
                     <LinearLayout
+                        android:id="@+id/cumulativeChar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="230dp"
+                        android:layout_marginRight="450dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <ImageView
+                            android:id="@+id/imgTempController"
+                            android:layout_width="105dp"
+                            android:layout_height="75dp"
+                            android:src="@drawable/ic_bolt_solid"/>
+
+                        <TextView
+                            android:id="@+id/txtTempController"
+                            android:layout_width="wrap_content"
+                            android:layout_height="60dp"
+                            android:gravity="center"
+                            android:paddingLeft="10dp"
+                            android:text="0 C°"
+                            android:textSize="40dp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/cumulativeDisc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="80dp"
+                        android:layout_marginRight="450dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <ImageView
+                            android:id="@+id/imgTempMotor"
+                            android:layout_width="105dp"
+                            android:layout_height="75dp"
+                            android:src="@drawable/ic__motor_temp"/>
+
+                        <TextView
+                            android:id="@+id/txtTempMotor"
+                            android:layout_width="wrap_content"
+                            android:layout_height="60dp"
+                            android:gravity="center"
+                            android:paddingLeft="10dp"
+                            android:text="0 C°"
+                            android:textSize="40dp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/voltageBattery"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="80dp"
+                        android:layout_marginRight="450dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <ImageView
+                            android:id="@+id/txtVoltajeMensaje"
+                            android:layout_width="90dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/ic_battery_pg" />
+
+                        <TextView
+                            android:id="@+id/txtVoltaje"
+                            android:layout_width="wrap_content"
+                            android:layout_height="60dp"
+                            android:gravity="center"
+                            android:paddingLeft="20dp"
+                            android:text="99,3 V"
+                            android:textSize="40dp" />
+
+                    </LinearLayout>
+                    <LinearLayout
                         android:id="@+id/batterySoh"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="150dp"
                         android:layout_marginRight="450dp"
+                        android:layout_marginTop="240dp"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toTopOf="parent">
@@ -92,65 +172,6 @@
 
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:id="@+id/cumulativeChar"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginRight="450dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent">
-
-                        <TextView
-                            android:id="@+id/txtCumulativeCharMensaje"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:layout_marginRight="25dp"
-                            android:gravity="center"
-                            android:text="Controlador"
-                            android:textSize="40dp" />
-
-                        <TextView
-                            android:id="@+id/txtTempController"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:gravity="center"
-                            android:paddingLeft="20dp"
-                            android:text="0"
-                            android:textSize="40dp" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cumulativeDisc"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="170dp"
-                        android:layout_marginRight="450dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent">
-
-                        <TextView
-                            android:id="@+id/txtCumulativeDiscMensaje"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:layout_marginRight="25dp"
-                            android:gravity="center"
-                            android:text="Temp Motor"
-                            android:textSize="40dp" />
-
-                        <TextView
-                            android:id="@+id/txtTempMotor"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:gravity="center"
-                            android:paddingLeft="20dp"
-                            android:text="0"
-                            android:textSize="40dp" />
-
-                    </LinearLayout>
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
             </LinearLayout>
@@ -191,7 +212,7 @@
                             android:paddingTop="45dp"
                             android:textSize="40dp"
                             android:gravity="top|center"
-                            android:text="100%"/>
+                            android:text=""/>
                     </RelativeLayout>
 
                 </LinearLayout>
@@ -215,97 +236,28 @@
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/layoutSquareBattery"
                     android:layout_marginTop="210dp"
-                    android:layout_height="420dp"
+                    android:layout_height="500dp"
                     android:orientation="vertical"
                     android:backgroundTint="@color/colorSquareNight"
                     android:background="@drawable/ic_square"
                     android:layout_width="fill_parent">
 
                     <LinearLayout
-                        android:id="@+id/voltageBattery"
+                        android:id="@+id/layoutCurrent"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="150dp"
-                        android:layout_marginLeft="650dp"
+                        android:layout_marginTop="160dp"
+                        android:layout_marginRight="80px"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent">
-
-                        <ImageView
-                            android:id="@+id/txtVoltajeMensaje"
-                            android:layout_width="90dp"
-                            android:layout_height="60dp"
-                            android:background="@drawable/ic_battery_pg" />
-
-                        <TextView
-                            android:id="@+id/txtVoltaje"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:gravity="center"
-                            android:paddingLeft="20dp"
-                            android:text="99,3 V"
-                            android:textSize="40dp" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/tempBattery"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginLeft="650dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent">
-
-                        <TextView
-                            android:id="@+id/batteryCurrentMensaje"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:layout_marginRight="25dp"
-                            android:gravity="center"
-                            android:text="+ -"
-                            android:textSize="40dp" />
-
-                        <TextView
-                            android:id="@+id/batteryCurrent"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:layout_marginLeft="40dp"
-                            android:gravity="right"
-                            android:text="1,3 A"
-                            android:textSize="40dp" />
-
-                    </LinearLayout>
-                    <LinearLayout
-                        android:id="@+id/rpmMotor"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="170dp"
-                        android:layout_marginLeft="650dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent">
-
-                        <TextView
-                            android:id="@+id/txtRPMMensaje"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:gravity="center"
-                            android:layout_marginRight="25dp"
-                            android:text="RPM"
-                            android:textSize="40dp" />
-                        <TextView
-                            android:id="@+id/txtRPM"
-                            android:layout_width="wrap_content"
-                            android:layout_height="60dp"
-                            android:gravity="center"
-                            android:paddingLeft="20dp"
-                            android:text="2000"
-                            android:textSize="40dp" />
+                        app:layout_constraintTop_toTopOf="parent"
+                        android:orientation="horizontal">
+                        <com.github.mikephil.charting.charts.LineChart
+                            android:id="@+id/chartCorriente"
+                            android:layout_width="250dp"
+                            android:layout_height="320dp"
+                            android:layout_marginBottom="150dp"/>
 
                     </LinearLayout>
                 </androidx.constraintlayout.widget.ConstraintLayout>
@@ -313,181 +265,5 @@
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-    <!--
-
-    <View
-        android:id="@+id/view22"
-        android:layout_width="wrap_content"
-        android:layout_height="500dp"
-        android:background="@drawable/ic_wave_battery_2"
-        app:layout_constraintBottom_toBottomOf="parent" />
-    <View
-        android:id="@+id/view3"
-        android:layout_width="wrap_content"
-        android:layout_height="300dp"
-        android:background="@drawable/ic_wave_battery_3"
-        app:layout_constraintBottom_toBottomOf="parent" />
-
-
-        <LinearLayout android:layout_width="0dp" android:layout_height="fill_parent"
-            android:layout_weight="1"
-            android:orientation="vertical">
-            <LinearLayout android:layout_width="fill_parent" android:layout_height="fill_parent"
-                android:orientation="vertical"
-                tools:ignore="MissingConstraints">
-
-                <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:textSize="40dp"
-                        android:gravity="center"
-                        android:text="Velocidad"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/txtRPM"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="top|center"
-                            android:text="0 km/h"/>
-                    </LinearLayout>
-                </LinearLayout>
-                <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="center"
-                            android:text="Temperatura"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/txtRPM2"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="top|center"
-                            android:text="0 C°"/>
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="fill_parent"
-            android:layout_weight="1"
-            android:orientation="vertical">
-            <LinearLayout android:layout_width="fill_parent" android:layout_height="fill_parent"
-                android:orientation="vertical"
-                tools:ignore="MissingConstraints">
-
-                <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="center"
-                            android:text="RPM"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/txtTempMotor"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="top|center"
-                            android:text="0"/>
-                    </LinearLayout>
-                </LinearLayout>
-                <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="center"
-                            android:text="Voltaje"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/txtTempMotor2"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="top|center"
-                            android:text="0 Volt"/>
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout android:layout_width="0dp" android:layout_height="fill_parent"
-            android:layout_weight="1"
-            android:orientation="horizontal">
-            <LinearLayout android:layout_width="fill_parent" android:layout_height="fill_parent"
-                android:orientation="vertical"
-                tools:ignore="MissingConstraints">
-
-                <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="center"
-                            android:text="Flujo Aire"/>
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-                        <TextView
-                            android:id="@+id/txtPosAcelerador"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:textSize="40dp"
-                            android:gravity="top|center"
-                            android:text="0"/>
-                    </LinearLayout>
-                </LinearLayout>
-                <LinearLayout android:layout_width="fill_parent" android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
-
-    -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

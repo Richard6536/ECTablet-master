@@ -5,6 +5,7 @@ import android.content.res.Resources;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.AppCompatImageView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -25,6 +26,7 @@ import com.example.richard.ectablet.Adapters.CardviewNavigationRoutesAdapter;
 import com.example.richard.ectablet.Adapters.SpinnerAdapter;
 import com.example.richard.ectablet.Adapters.SpinnerIndNavigationAdapter;
 import com.example.richard.ectablet.Adapters.TopSheetBehavior;
+import com.example.richard.ectablet.Clases.ControllerActivity;
 import com.example.richard.ectablet.Clases.MapBoxManager;
 import com.example.richard.ectablet.Clases.SessionManager;
 import com.example.richard.ectablet.R;
@@ -50,10 +52,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private MapBoxManager mapBoxBManager = new MapBoxManager();
     public static View topRouteSheet;
     public static RelativeLayout relativeDrawableSearch;
-    public static RecyclerView recyclerView_direction_nav;
-
-    public static ImageView imgIndicationRoute;
-    public static TextView txtIndicationRoute;
+    public View toolbarDividerViewStreets;
+    public static TextView txtDirectionStreet, txtDuration, txtDistance;
+    public static ImageView imgDirectionStreet;
 
     BottomSheetBehavior sheetBehavior;
     private LinearLayout bottom_sheet;
@@ -62,25 +63,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_map, container, false);
+        ControllerActivity.mapFragmentIntance = this;
 
         mapBoxBManager.InicializarMapBox(this, view, savedInstanceState);
 
         relativeDrawableSearch = view.findViewById(R.id.relativeDrawableSearch);
+        toolbarDividerViewStreets = view.findViewById(R.id.toolbarDividerViewStreet);
 
         topRouteSheet = view.findViewById(R.id.layoutSheetTop);
         TopSheetBehavior.from(topRouteSheet).setState(TopSheetBehavior.STATE_HIDDEN);
 
-        try{
+        imgDirectionStreet = view.findViewById(R.id.imgDirectionStreet);
+        txtDirectionStreet = view.findViewById(R.id.txtDirectionStreet);
+        txtDuration = view.findViewById(R.id.txtDuration);
+        txtDistance = view.findViewById(R.id.txtDistance);
 
-            recyclerView_direction_nav = (RecyclerView)view.findViewById(R.id.recyclerView_direction_nav);
-            recyclerView_direction_nav.setHasFixedSize(true);
-            GridLayoutManager mGridLayoutManager = new GridLayoutManager(getActivity(), 1);
-            recyclerView_direction_nav.setLayoutManager(mGridLayoutManager);
-
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
         /**
         duration = view.findViewById(R.id.txtDuration);
         distance = view.findViewById(R.id.txtDistance);

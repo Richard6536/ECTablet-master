@@ -13,10 +13,12 @@
         android:icon="@drawable/ic_asset_battery_light"
         android:title=""
         app:showAsAction="ifRoom" />
+    <!--
     <item
         android:id="@+id/action_stats"
         android:enabled="true"
         android:icon="@drawable/ic_asset_stats_light"
         android:title=""
         app:showAsAction="ifRoom" />
+    -->
 </menu>

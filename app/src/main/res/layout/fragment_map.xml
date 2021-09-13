@@ -4,7 +4,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:mapbox="http://schemas.android.com/apk/res-auto"
     tools:context=".Fragments.d.MapFragment">
 
     <com.mapbox.mapboxsdk.maps.MapView
@@ -20,18 +19,78 @@
         <LinearLayout
             android:id="@+id/layoutSheetTop"
             android:layout_width="300dp"
-            android:layout_height="400dp"
+            android:layout_height="200dp"
             android:orientation="vertical"
             android:background="@drawable/rounded_top_sheet"
             app:behavior_hideable="true"
-            app:behavior_peekHeight="400dp"
+            app:behavior_peekHeight="200dp"
             android:gravity="top"
             app:layout_behavior=".Adapters.TopSheetBehavior">
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerView_direction_nav"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginTop="34dp"></androidx.recyclerview.widget.RecyclerView>
+                android:layout_height="70dp"
+                android:layout_marginTop="45px"
+                android:orientation="horizontal"
+                android:layout_gravity="center_vertical"
+                android:weightSum="2">
+
+                <ImageView
+                    android:id="@+id/imgDirectionStreet"
+                    app:tint="#ffffff"
+                    android:layout_marginLeft="20px"
+                    android:layout_width="100px"
+                    android:layout_height="match_parent" />
+
+                <TextView
+                    android:id="@+id/txtDirectionStreet"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="20px"
+                    android:layout_marginRight="20px"
+                    android:layout_weight="1"
+                    android:textColor="#ffffff"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:textSize="25dp"
+                    android:text=""></TextView>
+            </LinearLayout>
+            <View
+                android:id="@+id/toolbarDividerViewStreet"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginTop="15dp"
+                android:background="#474747"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="70dp"
+                android:orientation="horizontal"
+                android:layout_gravity="center_vertical"
+                android:weightSum="2">
+
+                <TextView
+                    android:id="@+id/txtDuration"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="-"
+                    android:layout_margin="5dp"
+                    android:textColor="#ffffff"
+                    android:textSize="25dp"
+                    android:gravity="center"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtDistance"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:textStyle="bold"
+                    android:layout_margin="5dp"
+                    android:textColor="#ffffff"
+                    android:gravity="center"
+                    android:textSize="25dp"
+                    android:text="-"></TextView>
+            </LinearLayout>
         </LinearLayout>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

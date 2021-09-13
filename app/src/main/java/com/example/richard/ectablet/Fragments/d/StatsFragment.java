@@ -183,19 +183,6 @@ public class StatsFragment extends Fragment {
     }
     public void startChartCorriente(){
 
-        /*
-        mChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
-            @Override
-            public void onValueSelected(Entry e, Highlight h) {
-
-            }
-
-            @Override
-            public void onNothingSelected() {
-
-            }
-        });*/
-
         // enable description text
         mChartCorriente.getDescription().setEnabled(true);
 
@@ -234,8 +221,6 @@ public class StatsFragment extends Fragment {
 
         yAxisCorriente = mChartCorriente.getAxisLeft();
         yAxisCorriente.setTextColor(Color.WHITE);
-        yAxisCorriente.setAxisMaximum(100f);
-        yAxisCorriente.setAxisMinimum(-100f);
         yAxisCorriente.setDrawGridLines(true);
 
         YAxis rightAxis = mChartCorriente.getAxisRight();
@@ -279,19 +264,6 @@ public class StatsFragment extends Fragment {
         */
     }
     public void startChartRin(){
-
-        /*
-        mChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
-            @Override
-            public void onValueSelected(Entry e, Highlight h) {
-
-            }
-
-            @Override
-            public void onNothingSelected() {
-
-            }
-        });*/
 
         // enable description text
         mChartRin.getDescription().setEnabled(true);

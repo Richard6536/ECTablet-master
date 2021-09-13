@@ -90,10 +90,12 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.android.volley.VolleyLog.TAG;
+import static com.example.richard.ectablet.Activity.MainActivity.VEHICULO_APAGADO;
 import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
 
 public class LocationService extends Service {
 
+    public int statusError = 1;
     public boolean inOnDestroy = false;
     Timer timer = new Timer();
     Thread threadBLT;
@@ -131,6 +133,7 @@ public class LocationService extends Service {
     public int sohGlobal = 0;
     public double cumulativeChCurrentGlobal = 0.0;
     public double cumulativeDischCurrentGlobal = 0.0;
+    public boolean IN_CATCH = true;
 
     public LocationService() {
 
@@ -827,13 +830,19 @@ public class LocationService extends Service {
 
     private Runnable reader = new Runnable() {
         public void run() {
-            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
             try {
+                boolean aceptado = false;
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
                 serverSocket = adapter.listenUsingRfcommWithServiceRecord("RosieProject", UUID_BT);
-                Log.d("ThreadConnection_BT","Listening...");
+                Log.d("ThreadConnection_BT","Listening__...");
+
                 //addViewOnUiThread("TrackingFlow. Listening...");
-                socket = serverSocket.accept();
+
+                socket = serverSocket.accept(100);
+                aceptado = true;
                 Log.d("ThreadConnection_BT","Socket accepted...");
+                sendMessageStatus(1, false);
+
                 //addViewOnUiThread("TrackingFlow. Socket accepted...");
                 is = socket.getInputStream();
                 os = new OutputStreamWriter(socket.getOutputStream());
@@ -845,8 +854,10 @@ public class LocationService extends Service {
                 byte[] buffer = new byte[bufferSize];
                 Log.d("ThreadConnection_BT","Keep reading the messages while connection is open...");
 
-
-                while (!Thread.currentThread().isInterrupted()) {
+                Log.d("ThreadConnection_BT","current Thread is Interrupted: " + Thread.currentThread().isInterrupted());
+                while (true) {
+                    if(statusError == 0)
+                        sendMessageStatus(1, false);
 
                     try{
 
@@ -865,6 +876,8 @@ public class LocationService extends Service {
                             result = result + new String(buffer, 0, bytesRead);
                             sb.append(result);
                         }
+                        //os.write("ok");
+                        //os.flush();
 
                         Log.d("ThreadConnection_BT", "DATA: " + sb.toString());
 
@@ -873,13 +886,15 @@ public class LocationService extends Service {
                         String vel = jsonObject.getString("vel");
                         String soc = jsonObject.getString("soc");
                         String volt = jsonObject.getString("volt");
+                        String current = jsonObject.getString("current");
                         String tempMtr = jsonObject.getString("tempMtr");
                         String tempControll = jsonObject.getString("tempControll");
+                        String kmTrip = jsonObject.getString("kmTrip");
 
                         if(vel.equals("0")){
                             rpm = "0";
                         }
-                        sendMessageToActivity_2(rpm, vel, soc, volt, tempMtr, tempControll);
+                        sendMessageToActivity_2(rpm, vel, soc, volt, tempMtr, tempControll, current, kmTrip);
 
                         /*
                         JSONArray jsonArray = new JSONArray(sb.toString());
@@ -906,6 +921,7 @@ public class LocationService extends Service {
                 }
             }
             catch (IOException e) {
+
                 Log.e("ThreadConnection_BT","Thread Interrumpido");
 
                 if (!inOnDestroy){
@@ -914,11 +930,29 @@ public class LocationService extends Service {
                     threadBLT = new Thread(reader);
                     threadBLT.start();
                 }
+
+                if(IN_CATCH)
+                    sendMessageStatus(0, true);
             }
         }
     };
 
-    private void sendMessageToActivity_2(String rpm, String vel, String soc, String volt, String tempMotor, String tempController) {
+    private void sendMessageStatus(int status, boolean apagado){
+        statusError = status;
+        VEHICULO_APAGADO = apagado;
+
+        if (apagado)
+            IN_CATCH = false;
+        else
+            IN_CATCH = true;
+
+        Intent intent = new Intent("intentKey_status");
+        intent.putExtra("STATUS", status);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    private void sendMessageToActivity_2(String rpm, String vel, String soc, String volt, String tempMotor,
+                                         String tempController, String current, String kmTrip) {
         Intent intent = new Intent("intentKey");
         Log.d("ThreadConnection_BT", "TEMP: " + tempMotor + " - " + tempController);
         // You can also include some extra data.
@@ -928,121 +962,11 @@ public class LocationService extends Service {
         intent.putExtra("VOLT", volt);
         intent.putExtra("TEMPMOTOR", tempMotor);
         intent.putExtra("TEMPCONTROLLER", tempController);
+        intent.putExtra("CURRENT", current);
+        intent.putExtra("KMTRIP", kmTrip);
+
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
-
-    /*
-
-        private Runnable reader = new Runnable() {
-        public void run() {
-            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-            Log.d("ThreadConnection_BT", "BT: " + btAdress);
-
-            try {
-
-                BluetoothDevice device = adapter.getRemoteDevice(btAdress);
-                socket = device.createInsecureRfcommSocketToServiceRecord(UUID_BT); // createRfcommSocketToServiceRecord
-
-                Log.d("ThreadConnection_BT", "BT: " + device.getName() + " - " + device.getAddress());
-
-                socket.connect();
-                Log.d("ThreadConnection_BT", "Pass Socket connect");
-                is = socket.getInputStream();
-                ostream = socket.getOutputStream();
-
-                ObdRawCommand obdRawATDCommand = new ObdRawCommand("AT D");
-                obdRawATDCommand.run(is, ostream);
-
-                AT D
-                AT Z
-                AT L0
-                AT E0
-                AT S0
-                AT H1
-                AT SP 0
-
-    Thread.sleep(500);
-
-    ObdRawCommand obdRawATZCommand = new ObdRawCommand("AT Z");
-                obdRawATZCommand.run(is, ostream);
-
-    Thread.sleep(500);
-
-    ObdRawCommand obdRawATL0Command = new ObdRawCommand("AT L0");
-                obdRawATL0Command.run(is, ostream);
-
-    Thread.sleep(500);
-
-    ObdRawCommand obdRawATE0Command = new ObdRawCommand("AT E0");
-                obdRawATE0Command.run(is, ostream);
-
-    Thread.sleep(500);
-
-    ObdRawCommand obdRawATS0Command = new ObdRawCommand("AT S0");
-                obdRawATS0Command.run(is, ostream);
-
-    Thread.sleep(500);
-
-    ObdRawCommand obdRawATH1Command = new ObdRawCommand("AT H1");
-                obdRawATH1Command.run(is, ostream);
-
-    Thread.sleep(500);
-
-    ObdRawCommand obdRawATSP0Command = new ObdRawCommand("AT SP 0");
-                obdRawATSP0Command.run(is, ostream);
-
-    Thread.sleep(500);re
-
-                Log.d("ThreadConnection_BT", "TODO OK");
-
-
-
-    ObdRawCommand obdRawCommand2101 = new ObdRawCommand("2101");
-    ObdRawCommand obdRawCommand2105 = new ObdRawCommand("2105");
-
-
-
-                Log.d("ThreadConnection_BT", "TODO OK 2");
-                while (!Thread.currentThread().isInterrupted()) {
-
-        try{
-            //Thread.sleep(500);
-            Log.e("ThreadConnection_BT","Thread Funcionando");
-            String obdRaw2101Cmd = "";
-            String obdRaw2105Cmd = "";
-
-            obdRawCommand2101.run(is, ostream);
-            obdRawCommand2105.run(is, ostream);
-
-            obdRaw2101Cmd = obdRawCommand2101.getFormattedResult();
-            obdRaw2105Cmd = obdRawCommand2105.getFormattedResult();
-
-            Log.d("ThreadConnection_BT", "RESULT: " + obdRaw2101Cmd);
-
-            decodeHex(obdRaw2101Cmd, obdRaw2105Cmd);
-
-            Log.d(TAG, obdRaw2105Cmd);
-        }
-        catch (UnableToConnectException ex){
-            Log.d("ThreadConnection_BT", "UnableToConnectException: " + ex.getMessage());
-        }
-    }
-}
-            catch (IOException | InterruptedException e) {
-                    Log.e("ThreadConnection_BT","Thread Interrumpido");
-
-                    if (!inOnDestroy){
-                    Log.e("ThreadConnection_BT","Thread Re-conectando");
-                    Thread.currentThread().interrupt();
-                    threadBLT = new Thread(reader);
-                    threadBLT.start();
-                    }
-                    }
-                    }
-                    };
-
-
-                    */
 
     private void decodeHex(String dataHex2101, String dataHex2105){
 

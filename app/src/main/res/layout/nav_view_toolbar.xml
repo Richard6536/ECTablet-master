@@ -20,7 +20,7 @@
                 android:gravity="center"
                 android:paddingTop="5dp"
                 android:layout_marginLeft="10dp"
-                android:textSize="22dp"
+                android:textSize="30dp"
                 android:textColor="#fff"/>
         </LinearLayout>
         <LinearLayout
@@ -49,6 +49,75 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/toolbarDividerView0"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="10dp"
+            android:background="#474747"/>
+        <!--
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_weight="1">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#51BCBCBC"
+                    android:textSize="40dp"
+                    android:textStyle="bold"
+                    android:text="R"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_weight="1">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#51BCBCBC"
+                    android:textSize="40dp"
+                    android:textStyle="bold"
+                    android:text="N"/>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_weight="1">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#fff"
+                    android:textSize="40dp"
+                    android:textStyle="bold"
+                    android:text="D"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:id="@+id/toolbarDividerView4"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="10dp"
+            android:background="#474747"/>
+
+        -->
+        <TextView
+            android:id="@+id/kmRecorridosText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="15dp"
+            android:textSize="20dp"
+            android:text="Recorrido: 14546 MTS."/>
+        <View
             android:id="@+id/toolbarDividerView"
             android:layout_width="match_parent"
             android:layout_height="2dp"
@@ -57,55 +126,32 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="35dp"
-                android:layout_weight="0.1">
-                <TextView
-                    android:id="@+id/txtPatente"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:textColor="#fff"
-                    android:paddingTop="20px"
-                    android:paddingLeft="23px"
-                    android:textSize="20dp"
-                    android:text="HX-66-40"></TextView>
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/txtPatente"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:layout_weight="1"
-                android:orientation="horizontal">
-                <TextView
-                    android:id="@+id/txtKMTotales"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:paddingTop="20px"
-                    android:paddingRight="23px"
-                    android:textSize="20dp"
-                    android:gravity="right"
-                    android:text=""/>
-            </LinearLayout>
+                android:textColor="#fff"
+                android:paddingTop="15dp"
+                android:textSize="20dp"
+                android:text="Patente: HX-66-40"></TextView>
+
         </LinearLayout>
         <View
             android:id="@+id/toolbarDividerView2"
             android:layout_width="match_parent"
             android:layout_height="2dp"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="15dp"
             android:layout_marginBottom="20dp"
             android:background="#474747"/>
 
         <LinearLayout
-            android:id="@+id/txtEnRutaView"
             android:layout_width="match_parent"
             android:layout_height="0dip"
             android:layout_weight="2"
             android:gravity="center|top"
             android:orientation="vertical">
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -117,53 +163,25 @@
                     android:gravity="center"
                     android:layout_marginLeft="15dp"
                     android:layout_weight="0.03">
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_alignParentLeft="true"
-                        android:src="@drawable/ic_marcador_de_posicion"/>
-                </LinearLayout>
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1">
                     <TextView
-                        android:id="@+id/txtCurrentStreet"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:textSize="25dp"
                         android:gravity="center"
-                        android:text=""/>
+                        android:text="RPM"/>
                 </LinearLayout>
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="25dp"
-                android:orientation="horizontal" >
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="left"
-                    android:layout_marginLeft="15dp"
-                    android:layout_weight="0.4">
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_alignParentLeft="true"
-                        android:src="@drawable/ic_clock"/>
-                </LinearLayout>
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_weight="1">
                     <TextView
-                        android:id="@+id/tiempoRecorridoPorRuta"
+                        android:id="@+id/txtRpm"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:textSize="25dp"
-                        android:gravity="left"
-                        android:text="00 min."/>
+                        android:gravity="center"
+                        android:text="4325"/>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

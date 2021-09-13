@@ -595,55 +595,83 @@ public class MapBoxManager implements RouteProgressObserver {
 
     @Override
     public void onRouteProgressChanged(@NotNull RouteProgress routeProgress) {
-        String intr = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().maneuver().instruction();
-        String intr2 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().rotaryName();
-        String intr3 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().destinations();
-        String intr4 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().drivingSide();
+        try{
+            if(routeProgress != null){
+                String intr = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().maneuver().instruction();
+                String intr2 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().rotaryName();
+                String intr3 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().destinations();
+                String intr4 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().drivingSide();
 
-        String intr5 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().name();
+                String intr5 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().name();
 
-        String intr6 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().rotaryName();
-        String nextStreetName = routeProgress.getCurrentLegProgress().getUpcomingStep().name();
+                String intr6 = routeProgress.getCurrentLegProgress().getCurrentStepProgress().getStep().rotaryName();
+                String nextStreetName = routeProgress.getCurrentLegProgress().getUpcomingStep().name();
 
-        List<SpinnerIndNavigationAdapter> arraySteps = new ArrayList<>();
+                List<SpinnerIndNavigationAdapter> arraySteps = new ArrayList<>();
 
-        for (RouteLeg leg : routeProgress.getRoute().legs()) {
-            for (LegStep steps : leg.steps()) {
-                if (steps.maneuver().modifier() != null) {
+                for (RouteLeg leg : routeProgress.getRoute().legs()) {
+                    for (LegStep steps : leg.steps()) {
+                        if (steps.maneuver().modifier() != null) {
 
-                    String currentType = steps.maneuver().type();
-                    String currentModifier = steps.maneuver().modifier();
+                            String currentType = steps.maneuver().type();
+                            String currentModifier = steps.maneuver().modifier();
 
-                    if (currentModifier.contains(" ")) {
-                        String[] spl = currentModifier.split(" ");
-                        currentModifier = spl[0] + "_" + spl[1];
+                            if (currentModifier.contains(" ")) {
+                                String[] spl = currentModifier.split(" ");
+                                currentModifier = spl[0] + "_" + spl[1];
+                            }
+                            String currentIconName = "direction_" + currentType + "_" + currentModifier;
+                            arraySteps.add(new SpinnerIndNavigationAdapter(steps.name(), currentIconName));
+                        }
                     }
-                    String currentIconName = "direction_" + currentType + "_" + currentModifier;
-                    arraySteps.add(new SpinnerIndNavigationAdapter(steps.name(), currentIconName));
                 }
+
+                //AgregarIndicacionesNavegacion(arraySteps);
+                Log.d("RouteB", arraySteps.toString());
+
+                String type = routeProgress.getCurrentLegProgress().getUpcomingStep().maneuver().type();
+                String modifier = routeProgress.getCurrentLegProgress().getUpcomingStep().maneuver().modifier();
+
+                if (modifier.contains(" ")){
+                    String[] spl = modifier.split(" ");
+                    modifier = spl[0] + "_" + spl[1];
+                }
+
+                String iconName = "direction_" + type + "_" + modifier;
+
+                try {
+
+                    int distance = (int)routeProgress.getDistanceRemaining();
+                    String textDistance = "";
+                    if(distance > 100000){
+                        textDistance = (int)(distance / 1000) + " km.";
+                    }
+                    else{
+                        textDistance = distance + " mts.";
+                    }
+
+                    ControllerActivity.mapFragmentIntance.imgDirectionStreet.setImageResource(getApplicationContext().getResources().getIdentifier(iconName, "drawable", getApplicationContext().getPackageName()));
+                    ControllerActivity.mapFragmentIntance.txtDirectionStreet.setText(nextStreetName);
+                    ControllerActivity.mapFragmentIntance.txtDuration.setText((int)(routeProgress.getDurationRemaining() / 60)+" min.");
+                    ControllerActivity.mapFragmentIntance.txtDistance.setText(textDistance);
+                }
+                catch (Exception a){
+                    Log.d("EXCEP_Street", "Error: " + a.getMessage());
+                }
+
+                //mpf.img_navigation_icon.setImageResource(getApplicationContext().getResources().getIdentifier(iconName, "drawable", getApplicationContext().getPackageName()));
+                //mpf.txtRouteInfo.setText(nextStreetName);
+
+                Log.d("RouteA", "Progress: " + intr + " --- "+ intr2 + " --- "+ intr3 + " --- "+ intr4 + " --- "+ intr5 + " --- "+ intr6 + " --- " + nextStreetName + " --- " + iconName);
             }
         }
-
-        AgregarIndicacionesNavegacion(arraySteps);
-        Log.d("RouteB", arraySteps.toString());
-
-        String type = routeProgress.getCurrentLegProgress().getUpcomingStep().maneuver().type();
-        String modifier = routeProgress.getCurrentLegProgress().getUpcomingStep().maneuver().modifier();
-
-        if (modifier.contains(" ")){
-            String[] spl = modifier.split(" ");
-            modifier = spl[0] + "_" + spl[1];
+        catch (Exception e){
+            Log.d("EXCEP", "Error: " + e.getMessage());
         }
+    }
 
-        String iconName = "direction_" + type + "_" + modifier;
+    public void MostrarSiguienteDireccion(){
 
-        MainActivity.txtCurrentStreet.setText(intr5);
-
-        //MapFragment mpf = new MapFragment();
-        //mpf.img_navigation_icon.setImageResource(getApplicationContext().getResources().getIdentifier(iconName, "drawable", getApplicationContext().getPackageName()));
-        //mpf.txtRouteInfo.setText(nextStreetName);
-
-        Log.d("RouteA", "Progress: " + intr + " --- "+ intr2 + " --- "+ intr3 + " --- "+ intr4 + " --- "+ intr5 + " --- "+ intr6 + " --- " + nextStreetName + " --- " + iconName);
     }
 
     public void AgregarIndicacionesNavegacion(List<SpinnerIndNavigationAdapter> indicationList)
@@ -657,8 +685,6 @@ public class MapBoxManager implements RouteProgressObserver {
                 public void onItemClicked(int position, int itemPosition, SpinnerIndNavigationAdapter indication) {
                 }
             });
-
-            mpf.recyclerView_direction_nav.setAdapter(adapter);
 
         } catch (Exception e) {
             e.printStackTrace();
