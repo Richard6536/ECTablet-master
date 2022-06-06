@@ -1,6 +1,8 @@
 package com.example.richard.ectablet.Fragments.d;
 
 import android.animation.ValueAnimator;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -9,18 +11,21 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.richard.ectablet.Activity.SeleccionarVehiculoActivity;
 import com.example.richard.ectablet.Clases.BatteryEqtns;
+import com.example.richard.ectablet.Clases.Components.CurrentView;
 import com.example.richard.ectablet.Clases.ControllerActivity;
 import com.example.richard.ectablet.Clases.SessionManager;
 import com.example.richard.ectablet.R;
@@ -45,15 +50,19 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class BatteryFragment extends Fragment {
 
+    final static CurrentView currentView = new CurrentView();
+
     public static TextView txtVoltaje, txtBatteryLife,
             txtSoh, txtTempController, txtTempMotor;
 
+    public static boolean bloquearAnimacion = true;
     public static TextView txtSohMensaje;
 
     public static ImageView imageViewCar, imgTempMotor, imgTempController;
@@ -64,7 +73,8 @@ public class BatteryFragment extends Fragment {
 
 
     public static ImageView viewWavesBattery;
-    public static ConstraintLayout layoutSquareBattery, layoutSquareBattery2, content_general;
+    public static ConstraintLayout content_general;
+    public static LinearLayout layoutSquareBattery;
     public LinearLayout batteryVolt, batteryTemp, batterySoh, cumulativeChar,
             cumulativeDisc, maxTemp, minTemp;
 
@@ -73,10 +83,12 @@ public class BatteryFragment extends Fragment {
     public static XAxis xAxisCorriente;
     public static YAxis yAxisCorriente;
 
-    public float SOCActual = -1;
+    public float SOCActual = 78;
 
     public static long lastUpdateDate = 0;
     public static boolean whiling = true;
+
+    TextView txtCurrent;
     View view;
 
     @Override
@@ -84,6 +96,38 @@ public class BatteryFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         view = inflater.inflate(R.layout.fragment_battery, container, false);
+
+        ImageButton btnAbrirRadioApp = view.findViewById(R.id.abrirRadioApp);
+        ImageButton btnAbrirWifiApp = view.findViewById(R.id.abrirWifiApp);
+
+        txtCurrent = view.findViewById(R.id.txtCurrent);
+        CircularProgressBar circularProgressBarCorriente = view.findViewById(R.id.circularProgressBarCorriente);
+        currentView.DefineCurrentProgress(circularProgressBarCorriente);
+        currentView.setCurrentProgress(24, txtCurrent);
+        btnAbrirRadioApp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i;
+                PackageManager manager = getActivity().getPackageManager();
+                try {
+                    i = manager.getLaunchIntentForPackage("com.radio.fmradio");
+                    if (i == null)
+                        throw new PackageManager.NameNotFoundException();
+                    i.addCategory(Intent.CATEGORY_LAUNCHER);
+                    startActivity(i);
+                } catch (PackageManager.NameNotFoundException e) {
+
+                }
+            }
+        });
+
+        btnAbrirWifiApp.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+            }
+        });
+
         viewWavesBattery = view.findViewById(R.id.imgWaveBattery);
         imageViewCar = view.findViewById(R.id.imageViewCarVector);
 
@@ -100,7 +144,6 @@ public class BatteryFragment extends Fragment {
         txtSohMensaje = view.findViewById(R.id.txtSohMensaje);
 
         layoutSquareBattery = view.findViewById(R.id.layoutSquareBattery);
-        layoutSquareBattery2 = view.findViewById(R.id.layoutSquareBattery2);
 
         content_general = view.findViewById(R.id.content_general);
 
@@ -116,6 +159,7 @@ public class BatteryFragment extends Fragment {
         yCurrentPos = imageViewCar.getTop();
 
         circularProgressBar = view.findViewById(R.id.circularProgressBar);
+
         // Set Progress
         //circularProgressBar.setProgress(0f);
 
@@ -145,9 +189,8 @@ public class BatteryFragment extends Fragment {
 
         //txtTempMotor = view.findViewById(R.id.txtTempMotor);
         //txtPosAcelerador = view.findViewById(R.id.txtPosAcelerador);
-        mChartCorriente = view.findViewById(R.id.chartCorriente);
-
-        startChartCorriente();
+        //mChartCorriente = view.findViewById(R.id.chartCorriente);
+        //startChartCorriente();
         return view;
     }
 
@@ -163,15 +206,19 @@ public class BatteryFragment extends Fragment {
         int status = args2.getInt("STATUS");
         if(status == 0){
             //VEHICULO APAGADO
-            animationCar(250);
-            animationIcons(0, 0);
-            animationTextView(ValueAnimator.ofFloat(1f, 0f), 1500);
-            animationViews(ValueAnimator.ofFloat(1f, 0f), 1500);
-            circularProgressBar.setProgressWithAnimation(0, Long.valueOf(1000)); // =1s
-            SOCActual = 0;
-            txtBatteryLife.setText("");
+            if(!bloquearAnimacion){
+                bloquearAnimacion = true;
+                animationCar(250);
+                animationIcons(0, 0);
+                animationTextView(ValueAnimator.ofFloat(1f, 0f), 1500);
+                animationViews(ValueAnimator.ofFloat(1f, 0f), 1500);
+                circularProgressBar.setProgressWithAnimation(0, Long.valueOf(1000)); // =1s
+                SOCActual = 0;
+                txtBatteryLife.setText("");
+            }
         }
         else{
+            bloquearAnimacion = false;
             animationCar(700);
             animationIcons(535, 620);
             animationTextView(ValueAnimator.ofFloat(0f, 1f), 1500);
@@ -182,8 +229,7 @@ public class BatteryFragment extends Fragment {
     }
 
     public void putArguments(Bundle args2) {
-
-        String rpm = args2.getString("RPM");
+        
         String soc = args2.getString("SOC");
         String volt = args2.getString("VOLT");
         String tempMotor = args2.getString("TEMPMOTOR");
@@ -208,10 +254,10 @@ public class BatteryFragment extends Fragment {
             else {
                 neutroCurrent = 1;
             }
-
+            Log.d("TEMPCONTROMOTOR", "CONTR: " + tempController + " MOT: " + tempMotor);
             currentD = Float.parseFloat(current);
-            tempMotorD = BatteryEqtns.round(Double.parseDouble(tempMotor), 2) / 10;
-            tempControllerD = BatteryEqtns.round(Double.parseDouble(tempController), 2);
+            tempMotorD = BatteryEqtns.round(Double.parseDouble(tempMotor), 2) / 1000;
+            tempControllerD = BatteryEqtns.round(Double.parseDouble(tempController), 2) / 1000;
         }
         catch (Exception e){
 
@@ -225,17 +271,26 @@ public class BatteryFragment extends Fragment {
             imageViewCar.setImageResource(R.drawable.ic_car_vector_2);
         }*/
 
-        addEntry(currentD, neutroCurrent);
+        DecimalFormat df = new DecimalFormat("#.0");
+        String formatedNumber = df.format(tempMotorD);
+        String formatedNumber2 = df.format(tempControllerD);
+
+        //addEntry(currentD, neutroCurrent);
+
+        currentView.setCurrentProgress(currentD, txtCurrent);
+
         txtBatteryLife.setText(soc+"%");
         txtVoltaje.setText(volt + " V");
-        txtTempMotor.setText(0 + " C°");
-        txtTempController.setText(0 + " C°");
+        txtTempMotor.setText(formatedNumber + " C°");
+        txtTempController.setText(formatedNumber2 + " C°");
 
+        Log.d("TRETR_", tempMotorD+"");
         try
         {
             float socFloat = Float.parseFloat(soc);
-
-            if(SOCActual != socFloat){
+            Log.d("SOC_____: ", socFloat+"");
+            if(SOCActual != socFloat)
+            {
                 SOCActual = socFloat;
                 setSOCProgress();
             }
@@ -260,6 +315,7 @@ public class BatteryFragment extends Fragment {
             circularProgressBar.setProgressBarColorEnd(Color.WHITE);
         }
     }
+
 
 
     public void putArgumentsOBD2(Bundle args2){
@@ -420,7 +476,6 @@ public class BatteryFragment extends Fragment {
                 public void onAnimationUpdate(ValueAnimator animation) {
                     float alpha = (float) animation.getAnimatedValue();
                     layoutSquareBattery.setAlpha(alpha);
-                    layoutSquareBattery2.setAlpha(alpha);
                 }
             });
             valueAnimator.start();

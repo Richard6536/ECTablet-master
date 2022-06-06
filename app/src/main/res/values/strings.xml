@@ -31,4 +31,11 @@
     values-round/strings.xml for round devices.
     -->
     <string name="hello_world">Hello Square World!</string>
+
+    <string-array name="theme_array">
+        <item>Oscuro</item>
+        <item>Verde</item>
+        <item>Celeste</item>
+        <item>Rosa</item>
+    </string-array>
 </resources>

@@ -18,6 +18,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 
 import com.example.richard.ectablet.Clases.Almacenamiento;
+import com.example.richard.ectablet.Clases.Components.CurrentView;
+import com.example.richard.ectablet.Clases.Components.RPMView;
 import com.example.richard.ectablet.Clases.ControllerActivity;
 import com.example.richard.ectablet.R;
 import com.example.richard.ectablet.Services.BluetoothReceiveService;
@@ -39,8 +41,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextClock;
 import android.widget.TextView;
 
 import com.example.richard.ectablet.Clases.ActionBarActivity;
@@ -53,50 +59,54 @@ import com.example.richard.ectablet.Fragments.d.StatsFragment;
 import com.example.richard.ectablet.Services.LocationService;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.maps.MapboxMap;
+import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 import com.suke.widget.SwitchButton;
 
 import java.text.DecimalFormat;
+import java.time.Clock;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int DISCOVERABLE_REQUEST_CODE = 2;
 
-    public static boolean VEHICULO_APAGADO = true;
+    public static boolean VEHICULO_APAGADO = false;
 
     public Intent locationIntent;
-    public View layout_toolbar;
-    public LinearLayout topBar;
-
-    public FloatingActionButton fab;
-    public View toolbarDividerView, toolbarDividerView2, toolbarDividerView3, toolbarDividerView0;
+    public static View layout_toolbar;
+    public static LinearLayout topBar;
+    public static ImageButton btnSettings;
+    public static FloatingActionButton fab;
+    public static View toolbarDividerView, toolbarDividerView2, toolbarDividerView3, toolbarDividerView0;
 
     HideStatusBarNavigation hideStatusBarNavigation = new HideStatusBarNavigation();
     public View mContentView;
     SessionManager sessionController;
 
-    public ImageView imgViewGPS, imgViewWifi, imgViewBT, imgViewCloud, imgThemeSun, imgThemeMoon;
+    public TextClock txtClock;
+    public static ImageView imgViewGPS, imgViewWifi, imgViewBT, imgViewCloud, imgThemeSun, imgThemeMoon, imgAjustes;
 
+    final static RPMView rpmView = new RPMView();
     //final NavigationFragment mapFragment = new NavigationFragment();
-    final MapFragment mapFragment = new MapFragment();
-    final BatteryFragment batteryFragment = new BatteryFragment();
+    final static MapFragment mapFragment = new MapFragment();
+    final static BatteryFragment batteryFragment = new BatteryFragment();
     //final StatsFragment statsFragment = new StatsFragment();
     final FragmentManager fm = getSupportFragmentManager();
     Fragment active = mapFragment;
 
-    BottomNavigationView bottomNavigation;
+    public static BottomNavigationView bottomNavigation;
 
-    public static TextView kmRecorridosText, txtRPM;
+    public static TextView kmRecorridosText;
 
-    public TextView kmVelText, txtPatente, txtViewGPS,
-            txtViewWifi, txtKMFont;
+    public static TextView kmVelText, txtPatente, txtViewGPS,
+            txtViewWifi, txtKMFont, kmRecorridostotalText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         ControllerActivity.activiyAbiertaActual = this;
-        
         //Mapbox Access token
         Mapbox.getInstance(getApplicationContext(), getString(R.string.access_token));
 
@@ -106,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
         bottomNavigation = findViewById(R.id.bottom_navigation);
 
         sessionController = new SessionManager(getApplicationContext());
+
         mContentView = findViewById(R.id.container);
 
         layout_toolbar = findViewById(R.id.layout_toolbar);
@@ -139,7 +150,18 @@ public class MainActivity extends AppCompatActivity {
         imgViewCloud = findViewById(R.id.imgViewCloud);
 
         txtKMFont = findViewById(R.id.txtKMFont);
-        txtRPM = findViewById(R.id.txtRPM);
+
+        txtClock = findViewById(R.id.clockText);
+        kmRecorridostotalText = findViewById(R.id.kmRecorridostotalText);
+
+        btnSettings = findViewById(R.id.btnSettings);
+        btnSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, AjustesActivity.class);
+                startActivity(intent);
+            }
+        });
 
         LinearLayout lLayoutCerrarSesion = (LinearLayout)findViewById(R.id.lLayoutCerrarSesion);
         lLayoutCerrarSesion.setOnClickListener(new View.OnClickListener() {
@@ -193,16 +215,20 @@ public class MainActivity extends AppCompatActivity {
         iv.setLayoutParams(params);
 */
         //Define navegación inferior e iconos en la vista principal
+
+        CircularProgressBar circularProgressBarRPM = findViewById(R.id.circularProgressBarRPM);
+        rpmView.DefineRPMProgress(circularProgressBarRPM);
+
         DefineBottomNavigationView();
 
         //Se agregan los fragments al FragmentManager
         AddFragmentsToBeginTransaction();
 
-        HashMap<String, String> datos = sessionController.obtenerDatosUsuario();
-        String vehiculoId = datos.get(SessionManager.KEY_VEHICULOID);
-        Almacenamiento.crearDirectorio(vehiculoId);
+        //HashMap<String, String> datos = sessionController.obtenerDatosUsuario();
+        //String vehiculoId = datos.get(SessionManager.KEY_VEHICULOID);
+        //Almacenamiento.crearDirectorio(vehiculoId);
 
-        txtPatente.setText(datos.get(SessionManager.KEY_PATENTE));
+        //txtPatente.setText(datos.get(SessionManager.KEY_PATENTE));
 
         //Se inicia LocalBroadcastManager para que el BluetoothReceiveService envie datos a la actividad
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -232,37 +258,84 @@ public class MainActivity extends AppCompatActivity {
 
         com.suke.widget.SwitchButton switchButton = (com.suke.widget.SwitchButton) findViewById(R.id.switch_button);
 
-        HashMap<String, Boolean> datosTheme = sessionController.getTheme();
-        boolean isNightTheme = datosTheme.get(SessionManager.KEY_THEME);
-        if(isNightTheme)
-        {
-            MapBoxManager.styleString = "cknjd6of817xe17o7vjij0cjr";
-            switchButton.setChecked(true);
-        }
-        else
-        {
-            MapBoxManager.styleString = "ck9vy0gt004u21in7mx9pe4nh";
-            switchButton.setChecked(false);
-        }
+        //HashMap<String, String> datosKM = sessionController.getKM();
+        //int kmRecorridosTotal = Integer.parseInt(datosKM.get(SessionManager.KEY_KM));
 
         switchButton.setOnCheckedChangeListener(new SwitchButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(SwitchButton view, boolean isChecked) {
-                if (isChecked)
-                {
-                    NightTheme();
-                    MapBoxManager mapBoxManager = new MapBoxManager();
-                    mapBoxManager.CambiarStyle("cknjd6of817xe17o7vjij0cjr");
-                    sessionController.saveTheme(true);
+
+                HashMap<String, String> themeDataList = sessionController.getThemeList();
+                int themePos = Integer.parseInt(themeDataList.get(SessionManager.KEY_THEME_LIST));
+
+                if(themePos == 0) {
+                    if (isChecked)
+                    {
+                        //NIGHT
+                        NightTheme();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("cknjd6of817xe17o7vjij0cjr");
+                        sessionController.saveTheme(true);
+                    }
+                    else{
+                        DayTheme();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("ck9vy0gt004u21in7mx9pe4nh");
+                        sessionController.saveTheme(false);
+                    }
                 }
-                else{
-                    DayTheme();
-                    MapBoxManager mapBoxManager = new MapBoxManager();
-                    mapBoxManager.CambiarStyle("ck9vy0gt004u21in7mx9pe4nh");
-                    sessionController.saveTheme(false);
+                else if(themePos == 1) {
+                    if (isChecked)
+                    {
+                        //NIGHT
+                        GreenThemeNight();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("cku1uk1r53tdu18mmfn464nse");
+                        sessionController.saveTheme(true);
+                    }
+                    else{
+                        GreenThemeDay();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("cku1uk1r53tdu18mmfn464nse");
+                        sessionController.saveTheme(false);
+                    }
+                }
+                else if(themePos == 2) {
+                    if (isChecked)
+                    {
+                        //NIGHT
+                        CelesteThemeNight();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("cku34abt30awb18ojuh7jyfy6");
+                        sessionController.saveTheme(true);
+                    }
+                    else{
+                        CelesteThemeDay();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("cku34abt30awb18ojuh7jyfy6");
+                        sessionController.saveTheme(false);
+                    }
+                }
+                else if(themePos == 3) {
+                    if (isChecked)
+                    {
+                        //NIGHT
+                        RosaThemeNight();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("cku3hy4ab0o6p17mjsz5olnl7");
+                        sessionController.saveTheme(true);
+                    }
+                    else{
+                        RosaThemeDay();
+                        MapBoxManager mapBoxManager = new MapBoxManager();
+                        mapBoxManager.CambiarStyle("cku3hy4ab0o6p17mjsz5olnl7");
+                        sessionController.saveTheme(false);
+                    }
                 }
             }
         });
+
+        ControllerActivity.mainActivityAbierto = this;
     }
 
     private void AddFragmentsToBeginTransaction(){
@@ -283,12 +356,11 @@ public class MainActivity extends AppCompatActivity {
             layoutParams.height = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 45, displayMetrics);
             layoutParams.width = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 45, displayMetrics);
             iconView.setLayoutParams(layoutParams);
-
         }
 
         navigation.requestLayout();
         navigation.setY(50f);
-
+        navigation.setX(155f);
        /*
         navigation.setRotation(90f);
         //navigation.getLayoutParams().width=480;
@@ -337,7 +409,7 @@ public class MainActivity extends AppCompatActivity {
                                 batteryFragment.setSOCProgress();
                             }
 
-                            
+
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -386,12 +458,54 @@ public class MainActivity extends AppCompatActivity {
         }
 
         HashMap<String, Boolean> themeData = sessionController.getTheme();
+        HashMap<String, String> themeDataList = sessionController.getThemeList();
+
+        int themePos = Integer.parseInt(themeDataList.get(SessionManager.KEY_THEME_LIST));
         boolean isNightTheme = themeData.get(SessionManager.KEY_THEME);
 
-        if(isNightTheme)
-            NightTheme();
-        else
-            DayTheme();
+        if(themePos == 0) //Oscuro
+        {
+            if(isNightTheme) {
+                MapBoxManager.styleString = "cknjd6of817xe17o7vjij0cjr";
+                NightTheme();
+            }
+            else {
+                MapBoxManager.styleString = "ck9vy0gt004u21in7mx9pe4nh";
+                DayTheme();
+            }
+        }
+        else if(themePos == 1) //Verde
+        {
+            MapBoxManager.styleString = "cku1uk1r53tdu18mmfn464nse";
+
+            if(isNightTheme)
+                GreenThemeNight();
+            else
+                GreenThemeDay();
+        }
+        else if(themePos == 2) //Celeste
+        {
+            MapBoxManager.styleString = "cku34abt30awb18ojuh7jyfy6";
+
+            if(isNightTheme)
+                CelesteThemeNight();
+            else
+                CelesteThemeDay();
+        }
+        else if(themePos == 3) //Rosa
+        {
+            MapBoxManager.styleString = "cku3hy4ab0o6p17mjsz5olnl7";
+
+            if(isNightTheme)
+                RosaThemeNight();
+            else
+                RosaThemeDay();
+        }
+
+        if(MapBoxManager.GetMapBoxMap() != null){
+            MapBoxManager mapBoxManager = new MapBoxManager();
+            mapBoxManager.CambiarStyle(MapBoxManager.styleString);
+        }
     }
 
     @Override
@@ -462,7 +576,7 @@ public class MainActivity extends AppCompatActivity {
 
                 DecimalFormat df = new DecimalFormat("#.#");
 
-                /*
+
                 String tempMotorDecimal = "0.0";
                 String tempControllerDecimal = "0.0";
 
@@ -473,20 +587,36 @@ public class MainActivity extends AppCompatActivity {
                 }
                 catch (Exception e){
                     Log.d("ThreadConnection_BT", e.getMessage());
-                }*/
+                }
 
                 Bundle args = new Bundle();
-                args.putString("RPM", rpm);
                 args.putString("VELOCIDAD", vel);
                 args.putString("SOC", soc);
                 args.putString("VOLT", volt);
-                args.putString("TEMPMOTOR", tempMotor);
-                args.putString("TEMPCONTROLLER", tempController);
+                args.putString("TEMPMOTOR", tempMotorDecimal);
+                args.putString("TEMPCONTROLLER", tempControllerDecimal);
                 args.putString("CURRENT", current);
+
+                try{
+
+                    HashMap<String, String> datosKM = sessionController.getKM();
+                    int kmRecorridosTotal = Integer.parseInt(datosKM.get(SessionManager.KEY_KM_TOTAL));
+                    int kmRecorridos = Integer.parseInt(datosKM.get(SessionManager.KEY_KM));
+
+                    int kmSum = kmRecorridos + Integer.parseInt(kmtrip);
+                    int kmSumTotal = kmRecorridosTotal + Integer.parseInt(kmtrip);
+
+                    sessionController.saveKM(kmSum, kmSumTotal);
+
+                    kmRecorridostotalText.setText("Recorrido Total: " + kmSumTotal + " mts.");
+                    kmRecorridosText.setText("Recorrido Ruta: " + kmSum + " mts.");
+                }
+                catch (Exception ex){}
+
+                rpmView.setRPMProgress(Float.parseFloat(rpm));
 
                 batteryFragment.putArguments(args);
                 kmVelText.setText(vel+"");
-                kmRecorridosText.setText(kmtrip + " MTS.");
             }
             catch (Exception e){
 
@@ -690,6 +820,8 @@ public class MainActivity extends AppCompatActivity {
 
         //Side Toolbar
         layout_toolbar.setBackgroundColor(themeDayBackground);
+        kmRecorridosText.setTextColor(themeDayText);
+        kmRecorridostotalText.setTextColor(themeDayText);
         kmVelText.setTextColor(themeDayText);
         txtPatente.setTextColor(themeDayText);
         txtViewGPS.setTextColor(themeDayText);
@@ -697,6 +829,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setBackgroundTintList(ColorStateList.valueOf(Color
                 .parseColor("#E1E1E1")));
 
+        txtClock.setTextColor(themeDayText);
         Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
         Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
         willBeWhite.mutate().setColorFilter(themeDayText, PorterDuff.Mode.MULTIPLY);
@@ -736,6 +869,9 @@ public class MainActivity extends AppCompatActivity {
         drawableSheet.mutate();
         drawableSheet.setColor(themeDaySheetTransparent);
 
+
+        btnSettings.setColorFilter(themeDayText);
+
         //statsFragment.content_general_stats.setBackgroundColor(themeDayBackground);
         //gment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
         //statsFragment.xAxisVoltaje.setTextColor(themeDayText);
@@ -767,7 +903,6 @@ public class MainActivity extends AppCompatActivity {
         //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeDayText);
 
         batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
-        batteryFragment.layoutSquareBattery2.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
 
         batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeDaySquare));
 
@@ -776,7 +911,6 @@ public class MainActivity extends AppCompatActivity {
         VectorDrawableCompat.VFullPath path1 = vector.findPathByName("pathWaves");
         path1.setFillColor(themeDayWaves);
         */
-
     }
 
     public void NightTheme(){
@@ -790,6 +924,8 @@ public class MainActivity extends AppCompatActivity {
 
         //Side Toolbar
         layout_toolbar.setBackgroundColor(themeNightBackground);
+        kmRecorridosText.setTextColor(themeNightText);
+        kmRecorridostotalText.setTextColor(themeNightText);
         kmVelText.setTextColor(themeNightText);
         txtPatente.setTextColor(themeNightText);
         txtViewGPS.setTextColor(themeNightText);
@@ -797,6 +933,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setBackgroundTintList(ColorStateList.valueOf(Color
                 .parseColor("#273036")));
 
+        txtClock.setTextColor(themeNightText);
         Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
         Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
         willBeWhite.mutate().setColorFilter(themeNightText, PorterDuff.Mode.MULTIPLY);
@@ -821,6 +958,8 @@ public class MainActivity extends AppCompatActivity {
         GradientDrawable drawable = (GradientDrawable) bottomNavigation.getBackground();
         drawable.mutate();
         drawable.setColor(themeNightBackground);
+
+        btnSettings.setColorFilter(themeNightText);
 
         fab.setImageDrawable(willBeWhite);
         topBar.setBackgroundColor(themeNightBackground);
@@ -870,7 +1009,6 @@ public class MainActivity extends AppCompatActivity {
         //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
 
         batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
-        batteryFragment.layoutSquareBattery2.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
 
         batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
 
@@ -880,6 +1018,637 @@ public class MainActivity extends AppCompatActivity {
         path1.setFillColor(themeDayWaves);
         */
     }
+
+    public void GreenThemeNight(){
+
+        int themeNightBackground = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryGreenNight);
+        int themeNightText = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTextGreenNight);
+        int themeDayDivider = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDividerGreenNight);
+        int themeDaySheetTransparent = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTransparent);
+        int themeDayWaves = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDayWavesGreenNight);
+        int themeNightSquare = ContextCompat.getColor(MainActivity.this, R.color.colorSquareNight);
+
+        txtClock.setTextColor(themeNightText);
+
+        //Side Toolbar
+        layout_toolbar.setBackgroundColor(themeNightBackground);
+        kmRecorridosText.setTextColor(themeNightText);
+        kmRecorridostotalText.setTextColor(themeNightText);
+        kmVelText.setTextColor(themeNightText);
+        txtPatente.setTextColor(themeNightText);
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        fab.setBackgroundTintList(ColorStateList.valueOf(themeNightBackground));
+
+        Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
+        Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
+        willBeWhite.mutate().setColorFilter(themeNightText, PorterDuff.Mode.MULTIPLY);
+
+        bottomNavigation.setItemIconTintList(ColorStateList.valueOf(themeNightText));
+
+        //mapFragment.img_navigation_icon.setColorFilter(themeNightText);
+        //mapFragment.txtRouteInfo.setTextColor(themeNightText);
+
+        imgViewGPS.setColorFilter(themeNightText);
+        imgViewWifi.setColorFilter(themeNightText);
+        imgViewBT.setColorFilter(themeNightText);
+        imgViewCloud.setColorFilter(themeNightText);
+
+        imgThemeSun.setColorFilter(themeNightText);
+        imgThemeMoon.setColorFilter(themeNightText);
+
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        txtKMFont.setTextColor(themeNightText);
+
+        GradientDrawable drawable = (GradientDrawable) ControllerActivity.mainActivityAbierto.bottomNavigation.getBackground();
+        drawable.mutate();
+        drawable.setColor(themeNightBackground);
+
+        btnSettings.setColorFilter(themeNightText);
+
+        fab.setImageDrawable(willBeWhite);
+        topBar.setBackgroundColor(themeNightBackground);
+
+        toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        //TODO:mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
+        toolbarDividerView2.setBackgroundColor(themeDayDivider);
+        toolbarDividerView3.setBackgroundColor(themeDayDivider);
+
+        GradientDrawable drawableSearch = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.relativeDrawableSearch.getBackground();
+        drawableSearch.mutate();
+        drawableSearch.setColor(themeNightBackground);
+
+        GradientDrawable drawableSheet = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.topRouteSheet.getBackground();
+        drawableSheet.mutate();
+        drawableSheet.setColor(themeDaySheetTransparent);
+
+        //statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
+        //statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        //statsFragment.xAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.xAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.yAxisCorriente.setTextColor(themeNightText);
+
+        //statsFragment.txtCorrienteText.setTextColor(themeNightText);
+        //statsFragment.txtVoltajeText.setTextColor(themeNightText);
+        batteryFragment.content_general.setBackgroundColor(themeNightBackground);
+        batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_green);
+
+        batteryFragment.txtBatteryLife.setTextColor(themeNightText);
+        batteryFragment.txtTempMotor.setTextColor(themeNightText);
+        batteryFragment.txtTempController.setTextColor(themeNightText);
+        batteryFragment.txtSoh.setTextColor(themeNightText);
+        batteryFragment.txtVoltaje.setTextColor(themeNightText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
+
+        mapFragment.imgDirectionStreet.setColorFilter(themeNightText);
+        mapFragment.txtDirectionStreet.setTextColor(themeNightText);
+        mapFragment.txtDuration.setTextColor(themeNightText);
+        mapFragment.txtDistance.setTextColor(themeNightText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
+        batteryFragment.txtSohMensaje.setTextColor(themeNightText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
+
+        batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeDayWaves));
+
+        /*
+        VectorChildFinder vector = new VectorChildFinder(getApplicationContext(), R.drawable.ic_wave_battery_3, batteryFragment.viewWavesBattery);
+        VectorDrawableCompat.VFullPath path1 = vector.findPathByName("pathWaves");
+        path1.setFillColor(themeDayWaves);
+        */
+    }
+
+    public void GreenThemeDay(){
+
+        int themeNightBackground = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryGreenDay);
+        int themeNightText = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTextGreenDay);
+        int themeDayDivider = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDividerGreenDay);
+        int themeDaySheetTransparent = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTransparent);
+        int themeDayWaves = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDayWavesGreenDay);
+        int themeNightSquare = ContextCompat.getColor(MainActivity.this, R.color.colorSquareDay);
+
+        txtClock.setTextColor(themeNightText);
+
+        //Side Toolbar
+        layout_toolbar.setBackgroundColor(themeNightBackground);
+        kmRecorridosText.setTextColor(themeNightText);
+        kmRecorridostotalText.setTextColor(themeNightText);
+        kmVelText.setTextColor(themeNightText);
+        txtPatente.setTextColor(themeNightText);
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        fab.setBackgroundTintList(ColorStateList.valueOf(themeNightBackground));
+
+        Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
+        Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
+        willBeWhite.mutate().setColorFilter(themeNightText, PorterDuff.Mode.MULTIPLY);
+
+        bottomNavigation.setItemIconTintList(ColorStateList.valueOf(themeNightText));
+
+        //mapFragment.img_navigation_icon.setColorFilter(themeNightText);
+        //mapFragment.txtRouteInfo.setTextColor(themeNightText);
+
+        imgViewGPS.setColorFilter(themeNightText);
+        imgViewWifi.setColorFilter(themeNightText);
+        imgViewBT.setColorFilter(themeNightText);
+        imgViewCloud.setColorFilter(themeNightText);
+
+        imgThemeSun.setColorFilter(themeNightText);
+        imgThemeMoon.setColorFilter(themeNightText);
+
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        txtKMFont.setTextColor(themeNightText);
+
+        GradientDrawable drawable = (GradientDrawable) ControllerActivity.mainActivityAbierto.bottomNavigation.getBackground();
+        drawable.mutate();
+        drawable.setColor(themeNightBackground);
+
+        btnSettings.setColorFilter(themeNightText);
+
+        fab.setImageDrawable(willBeWhite);
+        topBar.setBackgroundColor(themeNightBackground);
+
+        toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        //TODO:mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
+        toolbarDividerView2.setBackgroundColor(themeDayDivider);
+        toolbarDividerView3.setBackgroundColor(themeDayDivider);
+
+        GradientDrawable drawableSearch = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.relativeDrawableSearch.getBackground();
+        drawableSearch.mutate();
+        drawableSearch.setColor(themeNightBackground);
+
+        GradientDrawable drawableSheet = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.topRouteSheet.getBackground();
+        drawableSheet.mutate();
+        drawableSheet.setColor(themeDaySheetTransparent);
+
+        //statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
+        //statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        //statsFragment.xAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.xAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.yAxisCorriente.setTextColor(themeNightText);
+
+        //statsFragment.txtCorrienteText.setTextColor(themeNightText);
+        //statsFragment.txtVoltajeText.setTextColor(themeNightText);
+        batteryFragment.content_general.setBackgroundColor(themeNightBackground);
+        batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_green);
+
+        batteryFragment.txtBatteryLife.setTextColor(themeNightText);
+        batteryFragment.txtTempMotor.setTextColor(themeNightText);
+        batteryFragment.txtTempController.setTextColor(themeNightText);
+        batteryFragment.txtSoh.setTextColor(themeNightText);
+        batteryFragment.txtVoltaje.setTextColor(themeNightText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
+
+        mapFragment.imgDirectionStreet.setColorFilter(themeNightText);
+        mapFragment.txtDirectionStreet.setTextColor(themeNightText);
+        mapFragment.txtDuration.setTextColor(themeNightText);
+        mapFragment.txtDistance.setTextColor(themeNightText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
+        batteryFragment.txtSohMensaje.setTextColor(themeNightText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
+
+        batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeDayWaves));
+
+        /*
+        VectorChildFinder vector = new VectorChildFinder(getApplicationContext(), R.drawable.ic_wave_battery_3, batteryFragment.viewWavesBattery);
+        VectorDrawableCompat.VFullPath path1 = vector.findPathByName("pathWaves");
+        path1.setFillColor(themeDayWaves);
+        */
+    }
+
+    public void CelesteThemeNight(){
+
+        int themeNightBackground = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryCelesteNight);
+        int themeNightText = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTextCelesteNight);
+        int themeDayDivider = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDividerCelesteNight);
+        int themeDaySheetTransparent = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTransparent);
+        int themeDayWaves = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDayWavesCelesteNight);
+        int themeNightSquare = ContextCompat.getColor(MainActivity.this, R.color.colorSquareDay);
+
+        txtClock.setTextColor(themeNightText);
+
+        //Side Toolbar
+        layout_toolbar.setBackgroundColor(themeNightBackground);
+        kmRecorridosText.setTextColor(themeNightText);
+        kmRecorridostotalText.setTextColor(themeNightText);
+        kmVelText.setTextColor(themeNightText);
+        txtPatente.setTextColor(themeNightText);
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        fab.setBackgroundTintList(ColorStateList.valueOf(themeNightBackground));
+
+        Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
+        Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
+        willBeWhite.mutate().setColorFilter(themeNightText, PorterDuff.Mode.MULTIPLY);
+
+        bottomNavigation.setItemIconTintList(ColorStateList.valueOf(themeNightText));
+
+        //mapFragment.img_navigation_icon.setColorFilter(themeNightText);
+        //mapFragment.txtRouteInfo.setTextColor(themeNightText);
+
+        imgViewGPS.setColorFilter(themeNightText);
+        imgViewWifi.setColorFilter(themeNightText);
+        imgViewBT.setColorFilter(themeNightText);
+        imgViewCloud.setColorFilter(themeNightText);
+
+        imgThemeSun.setColorFilter(themeNightText);
+        imgThemeMoon.setColorFilter(themeNightText);
+
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        txtKMFont.setTextColor(themeNightText);
+
+        GradientDrawable drawable = (GradientDrawable) ControllerActivity.mainActivityAbierto.bottomNavigation.getBackground();
+        drawable.mutate();
+        drawable.setColor(themeNightBackground);
+
+        btnSettings.setColorFilter(themeNightText);
+
+        fab.setImageDrawable(willBeWhite);
+        topBar.setBackgroundColor(themeNightBackground);
+
+        toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        //TODO:mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
+        toolbarDividerView2.setBackgroundColor(themeDayDivider);
+        toolbarDividerView3.setBackgroundColor(themeDayDivider);
+
+        GradientDrawable drawableSearch = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.relativeDrawableSearch.getBackground();
+        drawableSearch.mutate();
+        drawableSearch.setColor(themeNightBackground);
+
+        GradientDrawable drawableSheet = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.topRouteSheet.getBackground();
+        drawableSheet.mutate();
+        drawableSheet.setColor(themeDaySheetTransparent);
+
+        //statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
+        //statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        //statsFragment.xAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.xAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.yAxisCorriente.setTextColor(themeNightText);
+
+        //statsFragment.txtCorrienteText.setTextColor(themeNightText);
+        //statsFragment.txtVoltajeText.setTextColor(themeNightText);
+        batteryFragment.content_general.setBackgroundColor(themeNightBackground);
+        batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_celeste);
+
+        batteryFragment.txtBatteryLife.setTextColor(themeNightText);
+        batteryFragment.txtTempMotor.setTextColor(themeNightText);
+        batteryFragment.txtTempController.setTextColor(themeNightText);
+        batteryFragment.txtSoh.setTextColor(themeNightText);
+        batteryFragment.txtVoltaje.setTextColor(themeNightText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
+
+        mapFragment.imgDirectionStreet.setColorFilter(themeNightText);
+        mapFragment.txtDirectionStreet.setTextColor(themeNightText);
+        mapFragment.txtDuration.setTextColor(themeNightText);
+        mapFragment.txtDistance.setTextColor(themeNightText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
+        batteryFragment.txtSohMensaje.setTextColor(themeNightText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
+
+        batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeDayWaves));
+
+        /*
+        VectorChildFinder vector = new VectorChildFinder(getApplicationContext(), R.drawable.ic_wave_battery_3, batteryFragment.viewWavesBattery);
+        VectorDrawableCompat.VFullPath path1 = vector.findPathByName("pathWaves");
+        path1.setFillColor(themeDayWaves);
+        */
+    }
+
+    public void CelesteThemeDay(){
+
+        int themeNightBackground = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryCelesteDay);
+        int themeNightText = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTextCelesteDay);
+        int themeDayDivider = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDividerCelesteDay);
+        int themeDaySheetTransparent = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTransparent);
+        int themeDayWaves = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDayWavesCelesteDay);
+        int themeNightSquare = ContextCompat.getColor(MainActivity.this, R.color.colorSquareDay);
+
+        txtClock.setTextColor(themeNightText);
+
+        //Side Toolbar
+        layout_toolbar.setBackgroundColor(themeNightBackground);
+        kmRecorridosText.setTextColor(themeNightText);
+        kmRecorridostotalText.setTextColor(themeNightText);
+        kmVelText.setTextColor(themeNightText);
+        txtPatente.setTextColor(themeNightText);
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        fab.setBackgroundTintList(ColorStateList.valueOf(themeNightBackground));
+
+        Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
+        Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
+        willBeWhite.mutate().setColorFilter(themeNightText, PorterDuff.Mode.MULTIPLY);
+
+        bottomNavigation.setItemIconTintList(ColorStateList.valueOf(themeNightText));
+
+        //mapFragment.img_navigation_icon.setColorFilter(themeNightText);
+        //mapFragment.txtRouteInfo.setTextColor(themeNightText);
+
+        imgViewGPS.setColorFilter(themeNightText);
+        imgViewWifi.setColorFilter(themeNightText);
+        imgViewBT.setColorFilter(themeNightText);
+        imgViewCloud.setColorFilter(themeNightText);
+
+        imgThemeSun.setColorFilter(themeNightText);
+        imgThemeMoon.setColorFilter(themeNightText);
+
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        txtKMFont.setTextColor(themeNightText);
+
+        GradientDrawable drawable = (GradientDrawable) ControllerActivity.mainActivityAbierto.bottomNavigation.getBackground();
+        drawable.mutate();
+        drawable.setColor(themeNightBackground);
+
+        btnSettings.setColorFilter(themeNightText);
+
+        fab.setImageDrawable(willBeWhite);
+        topBar.setBackgroundColor(themeNightBackground);
+
+        toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        //TODO:mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
+        toolbarDividerView2.setBackgroundColor(themeDayDivider);
+        toolbarDividerView3.setBackgroundColor(themeDayDivider);
+
+        GradientDrawable drawableSearch = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.relativeDrawableSearch.getBackground();
+        drawableSearch.mutate();
+        drawableSearch.setColor(themeNightBackground);
+
+        GradientDrawable drawableSheet = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.topRouteSheet.getBackground();
+        drawableSheet.mutate();
+        drawableSheet.setColor(themeDaySheetTransparent);
+
+        //statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
+        //statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        //statsFragment.xAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.xAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.yAxisCorriente.setTextColor(themeNightText);
+
+        //statsFragment.txtCorrienteText.setTextColor(themeNightText);
+        //statsFragment.txtVoltajeText.setTextColor(themeNightText);
+        batteryFragment.content_general.setBackgroundColor(themeNightBackground);
+        batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_celeste);
+
+        batteryFragment.txtBatteryLife.setTextColor(themeNightText);
+        batteryFragment.txtTempMotor.setTextColor(themeNightText);
+        batteryFragment.txtTempController.setTextColor(themeNightText);
+        batteryFragment.txtSoh.setTextColor(themeNightText);
+        batteryFragment.txtVoltaje.setTextColor(themeNightText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
+
+        mapFragment.imgDirectionStreet.setColorFilter(themeNightText);
+        mapFragment.txtDirectionStreet.setTextColor(themeNightText);
+        mapFragment.txtDuration.setTextColor(themeNightText);
+        mapFragment.txtDistance.setTextColor(themeNightText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
+        batteryFragment.txtSohMensaje.setTextColor(themeNightText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
+
+        batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeDayWaves));
+
+        /*
+        VectorChildFinder vector = new VectorChildFinder(getApplicationContext(), R.drawable.ic_wave_battery_3, batteryFragment.viewWavesBattery);
+        VectorDrawableCompat.VFullPath path1 = vector.findPathByName("pathWaves");
+        path1.setFillColor(themeDayWaves);
+        */
+    }
+
+    public void RosaThemeNight(){
+
+        int themeNightBackground = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDayWavesRosaNight);
+        int themeNightText = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTextRosaNight);
+        int themeDayDivider = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDividerRosaNight);
+        int themeDaySheetTransparent = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTransparent);
+        int themeDayWaves = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDayWavesRosaNight);
+        int themeNightSquare = ContextCompat.getColor(MainActivity.this, R.color.colorSquareDay);
+
+        txtClock.setTextColor(themeNightText);
+
+        //Side Toolbar
+        layout_toolbar.setBackgroundColor(themeNightBackground);
+        kmRecorridosText.setTextColor(themeNightText);
+        kmRecorridostotalText.setTextColor(themeNightText);
+        kmVelText.setTextColor(themeNightText);
+        txtPatente.setTextColor(themeNightText);
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        fab.setBackgroundTintList(ColorStateList.valueOf(themeNightBackground));
+
+        Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
+        Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
+        willBeWhite.mutate().setColorFilter(themeNightText, PorterDuff.Mode.MULTIPLY);
+
+        bottomNavigation.setItemIconTintList(ColorStateList.valueOf(themeNightText));
+
+        //mapFragment.img_navigation_icon.setColorFilter(themeNightText);
+        //mapFragment.txtRouteInfo.setTextColor(themeNightText);
+
+        imgViewGPS.setColorFilter(themeNightText);
+        imgViewWifi.setColorFilter(themeNightText);
+        imgViewBT.setColorFilter(themeNightText);
+        imgViewCloud.setColorFilter(themeNightText);
+
+        imgThemeSun.setColorFilter(themeNightText);
+        imgThemeMoon.setColorFilter(themeNightText);
+
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        txtKMFont.setTextColor(themeNightText);
+
+        GradientDrawable drawable = (GradientDrawable) ControllerActivity.mainActivityAbierto.bottomNavigation.getBackground();
+        drawable.mutate();
+        drawable.setColor(themeNightBackground);
+
+        btnSettings.setColorFilter(themeNightText);
+
+        fab.setImageDrawable(willBeWhite);
+        topBar.setBackgroundColor(themeNightBackground);
+
+        toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        //TODO:mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
+        toolbarDividerView2.setBackgroundColor(themeDayDivider);
+        toolbarDividerView3.setBackgroundColor(themeDayDivider);
+
+        GradientDrawable drawableSearch = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.relativeDrawableSearch.getBackground();
+        drawableSearch.mutate();
+        drawableSearch.setColor(themeNightBackground);
+
+        GradientDrawable drawableSheet = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.topRouteSheet.getBackground();
+        drawableSheet.mutate();
+        drawableSheet.setColor(themeDaySheetTransparent);
+
+        //statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
+        //statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        //statsFragment.xAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.xAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.yAxisCorriente.setTextColor(themeNightText);
+
+        //statsFragment.txtCorrienteText.setTextColor(themeNightText);
+        //statsFragment.txtVoltajeText.setTextColor(themeNightText);
+        batteryFragment.content_general.setBackgroundColor(themeNightBackground);
+        batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_rosa);
+
+        batteryFragment.txtBatteryLife.setTextColor(themeNightText);
+        batteryFragment.txtTempMotor.setTextColor(themeNightText);
+        batteryFragment.txtTempController.setTextColor(themeNightText);
+        batteryFragment.txtSoh.setTextColor(themeNightText);
+        batteryFragment.txtVoltaje.setTextColor(themeNightText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
+
+        mapFragment.imgDirectionStreet.setColorFilter(themeNightText);
+        mapFragment.txtDirectionStreet.setTextColor(themeNightText);
+        mapFragment.txtDuration.setTextColor(themeNightText);
+        mapFragment.txtDistance.setTextColor(themeNightText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
+        batteryFragment.txtSohMensaje.setTextColor(themeNightText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
+
+        batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeDayWaves));
+
+        /*
+        VectorChildFinder vector = new VectorChildFinder(getApplicationContext(), R.drawable.ic_wave_battery_3, batteryFragment.viewWavesBattery);
+        VectorDrawableCompat.VFullPath path1 = vector.findPathByName("pathWaves");
+        path1.setFillColor(themeDayWaves);
+        */
+    }
+
+    public void RosaThemeDay(){
+
+        int themeNightBackground = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryRosaDay);
+        int themeNightText = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTextRosaDay);
+        int themeDayDivider = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDividerRosaDay);
+        int themeDaySheetTransparent = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryTransparent);
+        int themeDayWaves = ContextCompat.getColor(MainActivity.this, R.color.colorPrimaryDayWavesRosaDay);
+        int themeNightSquare = ContextCompat.getColor(MainActivity.this, R.color.colorSquareDay);
+
+        txtClock.setTextColor(themeNightText);
+
+        //Side Toolbar
+        layout_toolbar.setBackgroundColor(themeNightBackground);
+        kmRecorridosText.setTextColor(themeNightText);
+        kmRecorridostotalText.setTextColor(themeNightText);
+        kmVelText.setTextColor(themeNightText);
+        txtPatente.setTextColor(themeNightText);
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        fab.setBackgroundTintList(ColorStateList.valueOf(themeNightBackground));
+
+        Drawable myFabSrc = getResources().getDrawable(android.R.drawable.ic_menu_mylocation);
+        Drawable willBeWhite = myFabSrc.getConstantState().newDrawable();
+        willBeWhite.mutate().setColorFilter(themeNightText, PorterDuff.Mode.MULTIPLY);
+
+        bottomNavigation.setItemIconTintList(ColorStateList.valueOf(themeNightText));
+
+        //mapFragment.img_navigation_icon.setColorFilter(themeNightText);
+        //mapFragment.txtRouteInfo.setTextColor(themeNightText);
+
+        imgViewGPS.setColorFilter(themeNightText);
+        imgViewWifi.setColorFilter(themeNightText);
+        imgViewBT.setColorFilter(themeNightText);
+        imgViewCloud.setColorFilter(themeNightText);
+
+        imgThemeSun.setColorFilter(themeNightText);
+        imgThemeMoon.setColorFilter(themeNightText);
+
+        txtViewGPS.setTextColor(themeNightText);
+        txtViewWifi.setTextColor(themeNightText);
+        txtKMFont.setTextColor(themeNightText);
+
+        GradientDrawable drawable = (GradientDrawable) ControllerActivity.mainActivityAbierto.bottomNavigation.getBackground();
+        drawable.mutate();
+        drawable.setColor(themeNightBackground);
+
+        btnSettings.setColorFilter(themeNightText);
+
+        fab.setImageDrawable(willBeWhite);
+        topBar.setBackgroundColor(themeNightBackground);
+
+        toolbarDividerView.setBackgroundColor(themeDayDivider);
+        toolbarDividerView0.setBackgroundColor(themeDayDivider);
+        //TODO:mapFragment.toolbarDividerViewStreets.setBackgroundColor(themeDayDivider);
+        toolbarDividerView2.setBackgroundColor(themeDayDivider);
+        toolbarDividerView3.setBackgroundColor(themeDayDivider);
+
+        GradientDrawable drawableSearch = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.relativeDrawableSearch.getBackground();
+        drawableSearch.mutate();
+        drawableSearch.setColor(themeNightBackground);
+
+        GradientDrawable drawableSheet = (GradientDrawable) ControllerActivity.mainActivityAbierto.mapFragment.topRouteSheet.getBackground();
+        drawableSheet.mutate();
+        drawableSheet.setColor(themeDaySheetTransparent);
+
+        //statsFragment.content_general_stats.setBackgroundColor(themeNightBackground);
+        //statsFragment.imgWaveStats.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        //statsFragment.xAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.yAxisVoltaje.setTextColor(themeNightText);
+        //statsFragment.xAxisCorriente.setTextColor(themeNightText);
+        //statsFragment.yAxisCorriente.setTextColor(themeNightText);
+
+        //statsFragment.txtCorrienteText.setTextColor(themeNightText);
+        //statsFragment.txtVoltajeText.setTextColor(themeNightText);
+        batteryFragment.content_general.setBackgroundColor(themeNightBackground);
+        batteryFragment.imageViewCar.setImageResource(R.drawable.ic_car_vector_rosa);
+
+        batteryFragment.txtBatteryLife.setTextColor(themeNightText);
+        batteryFragment.txtTempMotor.setTextColor(themeNightText);
+        batteryFragment.txtTempController.setTextColor(themeNightText);
+        batteryFragment.txtSoh.setTextColor(themeNightText);
+        batteryFragment.txtVoltaje.setTextColor(themeNightText);
+        //batteryFragment.txtBatteryCurrent.setTextColor(themeNightText);
+
+        mapFragment.imgDirectionStreet.setColorFilter(themeNightText);
+        mapFragment.txtDirectionStreet.setTextColor(themeNightText);
+        mapFragment.txtDuration.setTextColor(themeNightText);
+        mapFragment.txtDistance.setTextColor(themeNightText);
+
+        //batteryFragment.txtCumulativeDiscMensaje.setTextColor(themeNightText);
+        batteryFragment.txtSohMensaje.setTextColor(themeNightText);
+        //batteryFragment.txtCumulativeCharMensaje.setTextColor(themeNightText);
+
+        batteryFragment.layoutSquareBattery.setBackgroundTintList(ColorStateList.valueOf(themeNightSquare));
+
+        batteryFragment.viewWavesBattery.setBackgroundTintList(ColorStateList.valueOf(themeDayWaves));
+
+        /*
+        VectorChildFinder vector = new VectorChildFinder(getApplicationContext(), R.drawable.ic_wave_battery_3, batteryFragment.viewWavesBattery);
+        VectorDrawableCompat.VFullPath path1 = vector.findPathByName("pathWaves");
+        path1.setFillColor(themeDayWaves);
+        */
+    }
+
     public int getChargingStatus(byte val){
         String binary_str = Integer.toBinaryString((val & 0xFF) + 0x100).substring(1);
         int binaryInt = Integer.parseInt(binary_str);

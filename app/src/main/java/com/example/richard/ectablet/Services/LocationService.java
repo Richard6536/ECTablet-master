@@ -17,6 +17,7 @@ import android.icu.text.Transliterator;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
@@ -44,10 +45,12 @@ import android.widget.EditText;
 import com.example.richard.ectablet.Activity.MainActivity;
 import com.example.richard.ectablet.Clases.Almacenamiento;
 import com.example.richard.ectablet.Clases.ControllerActivity;
+import com.example.richard.ectablet.Clases.Helpers.ControlComponents;
 import com.example.richard.ectablet.Clases.HexData;
 import com.example.richard.ectablet.Clases.SessionManager;
 import com.example.richard.ectablet.Clases.Vehiculo;
 import com.example.richard.ectablet.R;
+import com.example.richard.ectablet.Utils.Notifications;
 import com.github.pires.obd.commands.protocol.ObdRawCommand;
 import com.github.pires.obd.exceptions.UnableToConnectException;
 import com.mapbox.geojson.Feature;
@@ -66,6 +69,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.Console;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -97,6 +101,7 @@ public class LocationService extends Service {
 
     public int statusError = 1;
     public boolean inOnDestroy = false;
+    public boolean enEstadoApagado = true;
     Timer timer = new Timer();
     Thread threadBLT;
 
@@ -116,12 +121,9 @@ public class LocationService extends Service {
     String fechaInicio = "-";
 
     public BluetoothSocket socket;
-    private InputStream is;
-    private OutputStreamWriter os;
-    private OutputStream ostream;
 
     public static String btAdress = "0C:FC:85:19:74:C2";
-    private static final UUID UUID_BT = UUID.fromString("08C2B2EF-7C87-3D00-0CDC-9A2ADC420BFF"); //
+    private static final UUID UUID_BT = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //
     public BluetoothDevice device;
     BluetoothServerSocket serverSocket;
     public String TAG = "OBDRESULT";
@@ -133,7 +135,7 @@ public class LocationService extends Service {
     public int sohGlobal = 0;
     public double cumulativeChCurrentGlobal = 0.0;
     public double cumulativeDischCurrentGlobal = 0.0;
-    public boolean IN_CATCH = true;
+    public static float gpsSpeed = 0;
 
     public LocationService() {
 
@@ -166,18 +168,12 @@ public class LocationService extends Service {
             Log.e("ThreadConnection_BT","OnDestroy ERROR_1: " + e.getMessage());
         }
         try{
-            socket.close();
+            if(socket != null){
+                socket.close();
+            }
         }
         catch (Exception e){
             Log.e("ThreadConnection_BT","OnDestroy ERROR_2: " + e.getMessage());
-        }
-
-        try {
-            is.close();
-            ostream.close();
-        }
-        catch (Exception e){
-            Log.e("ThreadConnection_BT","OnDestroy ERROR_3: " + e.getMessage());
         }
 
         threadBLT.interrupt();
@@ -190,21 +186,12 @@ public class LocationService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.e("POSITION_TAG", "onCreate");
-        try{
-            Intent notificationIntent = new Intent(LocationService.this, MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(LocationService.this, 0,
-                    notificationIntent, 0);
-            Notification notification = new NotificationCompat.Builder(this)
 
-                    .setContentTitle("My Awesome App")
-                    .setContentText("Doing some work...")
-                    .setContentIntent(pendingIntent).build();
-            startForeground(1456, notification);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            startForeground(2, Notifications.LocationServiceNotify(getApplicationContext()));
+        else
+            startForeground(1, new Notification());
 
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
 
         sessionController = new SessionManager(getApplicationContext());
         HashMap<String, String> datos = sessionController.obtenerDatosUsuario();
@@ -217,7 +204,10 @@ public class LocationService extends Service {
         {
             locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
@@ -228,21 +218,14 @@ public class LocationService extends Service {
                 return;
             }
 
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
-
-            //new ActualizarDatosEstadisticas().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
-            //new OBDLogs().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0,
+                    0, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0,
+                    0, locationListener);
 
             //Para leer directamente
             threadBLT = new Thread(reader);
             threadBLT.start();
-            //new sendData().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
-
-            //Para usar torque
-            //new writeOBD2ExcelAsync().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, "", "");
-
-
         }
         catch (Exception e)
         {
@@ -255,7 +238,10 @@ public class LocationService extends Service {
 
         @Override
         public void onLocationChanged(Location location) {
-            updatedLocation = location;
+            if(lastLocation != location) {
+                distanciaEnMetros(location);
+            }
+            gpsSpeed = location.getSpeed();
         }
 
         @Override
@@ -319,7 +305,8 @@ public class LocationService extends Service {
 
             //Almacenamiento.crearRegistroErroresPosicion("Paso_enviarDatosVehiculo",ja);
             //Enviar datos al webservice
-            new Vehiculo.ActualizarDatos().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, ja.toString(), vehiculoId, LLAVE, flotaId);
+            new Vehiculo.ActualizarDatos().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
+                    ja.toString(), vehiculoId, LLAVE, flotaId);
 
             if(isEmpty(puntoDestino) == false){
                 puntoEnviado = true;
@@ -346,7 +333,8 @@ public class LocationService extends Service {
             Map<String, String> data = session.getPoints();
 
             if(data.get(SessionManager.KEY_POINTS) != null){
-                String dataPoints = data.get(SessionManager.KEY_POINTS).replaceAll("\\\\", "");
+                String dataPoints = data.get(SessionManager.KEY_POINTS).replaceAll("\\\\",
+                        "");
 
                 JSONArray jsonArray = new JSONArray(dataPoints);
 
@@ -359,7 +347,9 @@ public class LocationService extends Service {
                     boolean activado = json_data.getBoolean("Activado");
 
                     if(activado){
-                        boolean isNear = arePointsNear(position, new LatLng(Double.parseDouble(latitud), Double.parseDouble(longitud)), 0.015);
+                        boolean isNear = arePointsNear(position,
+                                new LatLng(Double.parseDouble(latitud), Double.parseDouble(longitud)),
+                                0.015);
                         if(isNear)
                         {
                             nearPointName = nombre;
@@ -479,7 +469,8 @@ public class LocationService extends Service {
         lastLocation = location;
     }
 
-    private void sendMessageToActivity(int velocidad, float distanciaAcumulada, String fecha, boolean rutaNueva) {
+    private void sendMessageToActivity(int velocidad, float distanciaAcumulada, String fecha,
+                                       boolean rutaNueva) {
 
         Log.d("VLCD", velocidad+"");
 
@@ -500,340 +491,115 @@ public class LocationService extends Service {
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
-    public void dataCompilationToSend(Location location) throws IOException {
-
-        String currentDate = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
-
-        Object[][] carData = {
-                {
-                        currentDate,
-                        batteryCurrentGlobal,
-                        batteryVoltageGlobal,
-                        cumulativeChCurrentGlobal,
-                        cumulativeDischCurrentGlobal,
-                        rpmGlobal,
-                        socGlobal,
-                        sohGlobal,
-                        location.getLatitude(),
-                        location.getLongitude(),
-                        location.getAltitude()
-                }
-        };
-
-        String nombrePunto = checkPointsNearPosition(location);
-        if(isEmpty(nombrePunto) == false){
-            Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
-            if (puntoEnviado){
-                nombrePunto = "";
-                Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
-            }
-        }
-        else{
-            puntoEnviado = false;
-            Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
-        }
-
-
-        createExcelOBD2(carData, nombrePunto);
-        enviarDatosVehiculo(location, batteryCurrentGlobal, batteryVoltageGlobal, cumulativeChCurrentGlobal,
-                cumulativeDischCurrentGlobal, rpmGlobal, socGlobal, sohGlobal, nombrePunto);
-
-        sendOBD2ToActivity(batteryCurrentGlobal, batteryVoltageGlobal, cumulativeChCurrentGlobal,
-                cumulativeDischCurrentGlobal, rpmGlobal, socGlobal, sohGlobal);
-    }
-
-    public void readExcelOBD2(Location location){
-
-        File actualFile = null;
-        Date actualLastModDate = null;
-
-        String currentDate = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date());
-
-        String path = Environment.getExternalStorageDirectory().toString() + "/torqueLogs/";
-        File directory = new File(path);
-        File[] files = directory.listFiles();
-
-        if (files != null) {
-
-                for (int i = 0; i < files.length; i++) {
-
-                Date lastModDate = new Date(files[i].lastModified());
-                Date dateRest10Min = new Date(System.currentTimeMillis() - 600 * 1000);
-                if(lastModDate.after(dateRest10Min)){
-                    if (actualFile != null) {
-
-                        if (lastModDate.after(actualLastModDate)) {
-                            actualFile = files[i];
-                            actualLastModDate = new Date(files[i].lastModified());
-                        }
-                    } else {
-                        actualFile = files[i];
-                        actualLastModDate = new Date(files[i].lastModified());
-                    }
-                }
-            }
-        }
-
-        if(actualFile != null) {
-            try {
-
-                BufferedReader br = new BufferedReader(new FileReader(path + actualFile.getName()));
-                String line = br.readLine();
-                String lastLine = "";
-
-                while ((line = br.readLine()) != null) {
-                    // Doing some actions
-                    // Overwrite lastLine each time
-                    lastLine = line;
-                }
-
-                String[] items = lastLine.split(",");
-                double batteryCurrentValue = Double.parseDouble(items[12]);
-                double batteryVoltageValue = Double.parseDouble(items[13]);
-                double cumulativeCharValue = Double.parseDouble(items[14]);
-                double cumulativeDiscValue = Double.parseDouble(items[15]);
-                double driveMotorSpd1Value = Double.parseDouble(items[16]);
-                double stateOfChargedValue = Double.parseDouble(items[17]);
-                double stateOfHealthBValue = Double.parseDouble(items[18]);
-
-                Object[][] carData = {
-                        {
-                                currentDate,
-                                batteryCurrentValue,
-                                batteryVoltageValue,
-                                cumulativeCharValue,
-                                cumulativeDiscValue,
-                                driveMotorSpd1Value,
-                                stateOfChargedValue,
-                                stateOfHealthBValue,
-                                location.getLatitude(),
-                                location.getLongitude(),
-                                location.getAltitude()
-                        }
-                };
-
-                String nombrePunto = checkPointsNearPosition(location);
-                if(isEmpty(nombrePunto) == false){
-                    Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
-                    if (puntoEnviado){
-                        nombrePunto = "";
-                        Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
-                    }
-                }
-                else{
-                    puntoEnviado = false;
-                    Log.d("PUNTO_MARK", nombrePunto + " - " + puntoEnviado);
-                }
-
-                createExcelOBD2(carData, nombrePunto);
-                enviarDatosVehiculo(location, batteryCurrentValue, batteryVoltageValue, cumulativeCharValue, cumulativeDiscValue, driveMotorSpd1Value, stateOfChargedValue, stateOfHealthBValue, nombrePunto);
-
-                sendOBD2ToActivity(batteryCurrentValue, batteryVoltageValue, cumulativeCharValue,
-                        cumulativeDiscValue, driveMotorSpd1Value, stateOfChargedValue, stateOfHealthBValue);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     private boolean isEmpty(String etText) {
         if (etText.trim().length() > 0)
             return false;
         return true;
     }
 
-    public void readCSV(File file) throws IOException {
-        try{
-            String path = Environment.getExternalStorageDirectory().toString();
-            BufferedReader br = new BufferedReader(new FileReader(path + "/torqueLogs/" + file.getName()));
-
-            String line = br.readLine();
-            for (int rows=0; line != null; rows++) {
-                String[] items = line.split(",");
-                String item = items[1];
-                //read next line
-                line = br.readLine();
-            }
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-    }
-
-    public double checkNull(Cell cell){
-        if(cell != null)
-            return cell.getNumericCellValue();
-        return 0;
-    }
-
-    public int getLastRowContent(Sheet sheet){
-
-        int cont = 0;
-        for(Row row : sheet){
-            if (row.getCell(12) == null || row.getCell(12).getCellType() == Cell.CELL_TYPE_BLANK) break;
-            cont++;
-        }
-
-        if(cont > 0) cont--;
-        return cont;
-    }
-
-    public void createExcelOBD2(Object[][] carData, String nombrePunto) throws IOException {
-
-        String path = Environment.getExternalStorageDirectory().toString();
-
-        String fileName = "tracklog_"+dateTracklogs+".xlsx";
-
-        File f = new File(path, fileName);
-
-        XSSFWorkbook workbook = new XSSFWorkbook();
-        XSSFSheet sheet = null;
-
-        if(f.isFile()){
-            FileInputStream inputStream = new FileInputStream(new File(path + "/" + f.getName()));
-            workbook = new XSSFWorkbook(inputStream);
-            sheet = workbook.getSheetAt(0);
-            sheet.setDefaultColumnWidth(30);
-
-            Row headRow = sheet.createRow(0);
-
-            headRow.createCell(0).setCellValue((String) "Fecha");
-            headRow.createCell(1).setCellValue((String) "Battery Current (A)");
-            headRow.createCell(2).setCellValue((String) "Battery DC Voltage (V)");
-            headRow.createCell(3).setCellValue((String) "Cumulative Charge Current (Ah)");
-            headRow.createCell(4).setCellValue((String) "Cumulative Discharge Current (Ah)");
-            headRow.createCell(5).setCellValue((String) "RPM");
-            headRow.createCell(6).setCellValue((String) "State of Charge (SOC)");
-            headRow.createCell(7).setCellValue((String) "State of Health (SOH)");
-            headRow.createCell(8).setCellValue((String) "Latitude");
-            headRow.createCell(9).setCellValue((String) "Longitude");
-            headRow.createCell(10).setCellValue((String) "Altitude");
-            headRow.createCell(11).setCellValue((String) "Punto Destino");
-
-        }
-        else{
-            sheet = workbook.createSheet("Vehicle data");
-        }
-
-        int rowCount = sheet.getLastRowNum() + 1;
-
-        for (Object[] aCarData : carData) {
-            Row row = sheet.createRow(rowCount);
-
-            int columnCount = 0;
-
-            for (Object field : aCarData) {
-                Cell cell = row.createCell(columnCount);
-                if (field instanceof String) {
-                    cell.setCellValue((String) field);
-                } else if (field instanceof Double) {
-                    cell.setCellValue((Double) field);
-                }
-                ++columnCount;
-            }
-
-            Cell cell = row.createCell(columnCount);
-            cell.setCellValue((String)nombrePunto);
-
-        }
-
-        try (FileOutputStream outputStream = new FileOutputStream(f)) {
-            workbook.write(outputStream);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public class writeOBD2ExcelAsync extends AsyncTask<String,String, JSONObject>
-    {
-        @Override
-        protected JSONObject doInBackground(String... parametros) {
-
-            int begin = 0;
-            int timeInterval = 1000;
-            dateTracklogs = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
-
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if(updatedLocation != null){
-                        readExcelOBD2(updatedLocation);
-                    }
-                }
-            }, begin, timeInterval);
-
-            return new JSONObject();
-        }
-
-        protected void onPostExecute(JSONObject respuestaOdata) {
-        }
-    }
-
-    public class sendData extends AsyncTask<String,String, JSONObject>
-    {
-        @Override
-        protected JSONObject doInBackground(String... parametros) {
-
-            int begin = 0;
-            int timeInterval = 1000;
-            dateTracklogs = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
-
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if(updatedLocation != null){
-                        try {
-                            dataCompilationToSend(updatedLocation);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }, begin, timeInterval);
-
-            return new JSONObject();
-        }
-
-        protected void onPostExecute(JSONObject respuestaOdata) {
-        }
-    }
-
-    private void sendOBD2ToActivity(double batteryCurrentValue, double batteryVoltageValue,
-                                    double cumulativeCharValue, double cumulativeDiscValue,
-                                    double driveMotorSpd1Value, double stateOfChargedValue,
-                                    double stateOfHealthBValue) {
-
-
-        Intent intentKey = new Intent("intentKey");
-        intentKey.putExtra("BATERRYVOLTAGE", new DecimalFormat("#.##").format(batteryVoltageValue)+"");
-        intentKey.putExtra("BATTERYCURRENT", new DecimalFormat("#.##").format(batteryCurrentValue)+"");
-
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intentKey);
-
-        Intent intent = new Intent("intentKeyOBD2");
-
-        // You can also include some extra data.
-        intent.putExtra("BATTERYCURRENT", new DecimalFormat("#.##").format(batteryCurrentValue)+"");
-        intent.putExtra("BATERRYVOLTAGE", new DecimalFormat("#.#").format(batteryVoltageValue)+"");
-        intent.putExtra("CUMULATIVECHAR", new DecimalFormat("#.#").format(cumulativeCharValue)+"");
-        intent.putExtra("CUMULATIVEDISC", new DecimalFormat("#.#").format(cumulativeDiscValue)+"");
-        intent.putExtra("DRIVEMOTORSPD1", driveMotorSpd1Value+"");
-        intent.putExtra("STATEOFCHARGED", new DecimalFormat("#.#").format(stateOfChargedValue)+"");
-        intent.putExtra("STATEOFHEALTHB", new DecimalFormat("#.#").format(stateOfHealthBValue)+"");
-
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-    }
-
-
     private Runnable reader = new Runnable() {
         public void run() {
+
+            try{
+                Log.d("ThreadConnection_BT","*****COMENZAR*****");
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();//get the mobile bluetooth device
+                Log.d("ThreadConnection_BT","*****BLUETOOTH DEVICE*****");
+                BluetoothDevice dispositivo = adapter.getRemoteDevice("98:D3:71:F6:2F:83");//connects to the device address and check if it is available
+                Log.d("ThreadConnection_BT","*****ADDRESS DISPONIBLE*****" + dispositivo);
+                BluetoothSocket btSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(UUID_BT);//create a RFCOMM (SPP) connection
+                BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
+
+                btSocket.connect();
+                sendMessageStatus(1, false);
+                ControlComponents.startTimeEVApagado = 0;
+                enEstadoApagado = false;
+
+                InputStream input = btSocket.getInputStream();
+                DataInputStream dataInputStream = new DataInputStream(input);
+                Log.d("ThreadConnection_BT","*****DISPOSITIVO CONECTADO*****");
+
+                int bufferSize = 1024;
+                int bytesRead = -1;
+                byte[] buffer = new byte[bufferSize];
+                String result = "";
+
+                while(true){
+                    //Log.e("CCCNNN___","Read: " + true);
+                    if(btSocket.isConnected()){
+                        if(statusError == 0)
+                            sendMessageStatus(1, false);
+
+
+                        bytesRead = dataInputStream.read(buffer, 0, buffer.length);
+                        //bytesRead = btSocket.getInputStream().read(buffer);
+
+                        if (bytesRead != -1) {
+
+                            result = result + new String(buffer, 0, bytesRead);
+
+                            if(result.indexOf("}") != -1) //Contiene }
+                            {
+                                String[] spl = result.split("\\}");
+                                String completeData = spl[0] + "}";
+
+                                Log.e("CCCNNN___","DATA: " + completeData);
+                                result = "";
+
+                                try {
+                                    JSONObject jsonObject = new JSONObject(completeData);
+                                    String rpm = jsonObject.getString("rpm");
+                                    String vel = jsonObject.getString("vel");
+                                    String soc = jsonObject.getString("soc");
+                                    String volt = jsonObject.getString("volt");
+                                    String current = jsonObject.getString("current");
+                                    String tempMtr = jsonObject.getString("tempMtr");
+                                    String tempControll = jsonObject.getString("tempControll");
+                                    String kmTrip = jsonObject.getString("kmTrip");
+
+                                    if(vel.equals("0")){
+                                        rpm = "0";
+                                    }
+
+                                    sendMessageToActivity_2(rpm, vel, soc, volt, tempMtr, tempControll, current, kmTrip);
+                                }
+                                catch (Exception e){
+                                    Log.e("CCCNNN___","ERROR: " + e.getMessage());
+                                }
+                            }
+                        }
+                    }
+                    else{
+                        Log.e("CCCNNN___","DESCONECTADO");
+                    }
+                }
+            }
+            catch (Exception e){
+                Log.d("ThreadConnection_BT","*****ERROR: *****" + e.getMessage());
+                Log.e("ThreadConnection_BT","Thread Interrumpido");
+
+                if (!inOnDestroy){
+                    Log.e("ThreadConnection_BT","Thread Re-conectando");
+                    Thread.currentThread().interrupt();
+                    threadBLT = new Thread(reader);
+                    threadBLT.start();
+
+                    if(ControlComponents.startTimeEVApagado == 0)
+                        ControlComponents.startTimeEVApagado = Calendar.getInstance().getTimeInMillis();
+
+                    long restTime  = Calendar.getInstance().getTimeInMillis() - ControlComponents.startTimeEVApagado;
+                    Log.e("ThreadConnection_BT","REST-TIME: " + restTime);
+                    if(restTime > 6000)
+                    {
+                        ControlComponents.startTimeEVApagado = 0;
+                        //sendMessageStatus(0, true);
+                    }
+                }
+            }
+            /*
             try {
                 boolean aceptado = false;
                 BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-                serverSocket = adapter.listenUsingRfcommWithServiceRecord("RosieProject", UUID_BT);
+                serverSocket = adapter.listenUsingRfcommWithServiceRecord("HC-05", UUID_BT);
                 Log.d("ThreadConnection_BT","Listening__...");
 
                 //addViewOnUiThread("TrackingFlow. Listening...");
@@ -895,23 +661,6 @@ public class LocationService extends Service {
                             rpm = "0";
                         }
                         sendMessageToActivity_2(rpm, vel, soc, volt, tempMtr, tempControll, current, kmTrip);
-
-                        /*
-                        JSONArray jsonArray = new JSONArray(sb.toString());
-                        for(int x = 0; x <jsonArray.length(); x++){
-                            String str = jsonArray.getString(x);
-                            JSONObject jsonObject = new JSONObject(str);
-
-                            String rpm = jsonObject.getString("rpm");
-                            String vel = jsonObject.getString("vel");
-                            String soc = jsonObject.getString("soc");
-                            String volt = jsonObject.getString("volt");
-
-                            if(vel.equals("0")){
-                                rpm = "0";
-                            }
-                            sendMessageToActivity_2(rpm, vel, soc, volt);
-                        }*/
                     }
                     catch (UnableToConnectException ex){
                         Log.d("ThreadConnection_BT", "UnableToConnectException: " + ex.getMessage());
@@ -933,18 +682,14 @@ public class LocationService extends Service {
 
                 if(IN_CATCH)
                     sendMessageStatus(0, true);
-            }
+            }*/
         }
     };
 
     private void sendMessageStatus(int status, boolean apagado){
+
         statusError = status;
         VEHICULO_APAGADO = apagado;
-
-        if (apagado)
-            IN_CATCH = false;
-        else
-            IN_CATCH = true;
 
         Intent intent = new Intent("intentKey_status");
         intent.putExtra("STATUS", status);
@@ -953,6 +698,7 @@ public class LocationService extends Service {
 
     private void sendMessageToActivity_2(String rpm, String vel, String soc, String volt, String tempMotor,
                                          String tempController, String current, String kmTrip) {
+
         Intent intent = new Intent("intentKey");
         Log.d("ThreadConnection_BT", "TEMP: " + tempMotor + " - " + tempController);
         // You can also include some extra data.
@@ -963,7 +709,7 @@ public class LocationService extends Service {
         intent.putExtra("TEMPMOTOR", tempMotor);
         intent.putExtra("TEMPCONTROLLER", tempController);
         intent.putExtra("CURRENT", current);
-        intent.putExtra("KMTRIP", kmTrip);
+        intent.putExtra("KMTRIP", distanciaAcumulada);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }

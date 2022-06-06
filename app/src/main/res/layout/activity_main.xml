@@ -14,7 +14,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.3"
+            android:layout_weight="0.6"
             android:background="@color/colorPrimary"
             android:orientation="vertical">
             <include android:id="@+id/layout_toolbar" layout="@layout/nav_view_toolbar"></include>

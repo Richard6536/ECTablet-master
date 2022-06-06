@@ -99,9 +99,7 @@ public class MapBoxManager implements RouteProgressObserver {
     SymbolLayer symbolLayer;
 
     int PERMISSION_ALL = 1;
-    private static String[] PERMISSIONS = {
-            Manifest.permission.ACCESS_FINE_LOCATION};
-
+    private static String[] PERMISSIONS = { Manifest.permission.ACCESS_FINE_LOCATION };
 
     private static final String ROUTE_LAYER_ID = "route-layer-id";
     private static final String ROUTE_SOURCE_ID = "route-source-id";
@@ -131,11 +129,12 @@ public class MapBoxManager implements RouteProgressObserver {
         Mapbox.getInstance(context, "pk.eyJ1IjoiemVyb2RzIiwiYSI6ImNrM2t3cG0xNzB5bzgzam12dHdwY2luMXgifQ.3qy4aurdz4Vjp4QNr1-feg");
     }
 
-    public MapboxMap GetMapBoxMap()
+    public static MapboxMap GetMapBoxMap()
     {
         if(mapboxMap == null)
         {
             Log.d("ERROR MAPBOX", "MAPBOXMAP ES NULL");
+            return null;
         }
 
         return  mapboxMap;
@@ -179,12 +178,15 @@ public class MapBoxManager implements RouteProgressObserver {
     }
 
     public void CambiarStyle(String uriStyle){
-        mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/zerods/" + uriStyle), new Style.OnStyleLoaded() {
-            @Override
-            public void onStyleLoaded(@NonNull Style style) {
-                styleMap = style;
-            }
-        });
+        try{
+            mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/zerods/" + uriStyle), new Style.OnStyleLoaded() {
+                @Override
+                public void onStyleLoaded(@NonNull Style style) {
+                    styleMap = style;
+                }
+            });
+        }
+        catch (Exception ex){}
     }
 
     public void DefinirStyle(AutocompleteSupportFragment autoCompleteSupportFragment, Resources recursos,
@@ -482,7 +484,6 @@ public class MapBoxManager implements RouteProgressObserver {
                     //Timber.e("No routes found");
                     return;
                 }
-
 // Get the directions route
                 currentRoute = response.body().routes().get(0);
 

@@ -26,8 +26,8 @@
 
         <ImageView
             android:id="@+id/imageViewCarVector"
-            android:layout_width="511dp"
-            android:layout_height="339dp"
+            android:layout_width="361dp"
+            android:layout_height="289dp"
             android:layout_marginStart="1dp"
             android:layout_marginTop="824dp"
             android:rotation="270"
@@ -40,7 +40,8 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <LinearLayout android:orientation="horizontal"
+    <LinearLayout
+        android:orientation="horizontal"
         android:layout_height="fill_parent"
         android:layout_width="fill_parent"
         tools:ignore="MissingConstraints">
@@ -58,8 +59,6 @@
                     android:layout_marginTop="210dp"
                     android:layout_height="500dp"
                     android:orientation="vertical"
-                    android:backgroundTint="@color/colorSquareNight"
-                    android:background="@drawable/ic_square2"
                     android:layout_width="fill_parent">
 
                     <LinearLayout
@@ -85,7 +84,7 @@
                             android:gravity="center"
                             android:paddingLeft="10dp"
                             android:text="0 C°"
-                            android:textSize="40dp" />
+                            android:textSize="30dp" />
 
                     </LinearLayout>
 
@@ -112,7 +111,7 @@
                             android:gravity="center"
                             android:paddingLeft="10dp"
                             android:text="0 C°"
-                            android:textSize="40dp" />
+                            android:textSize="30dp" />
 
                     </LinearLayout>
 
@@ -139,7 +138,7 @@
                             android:gravity="center"
                             android:paddingLeft="20dp"
                             android:text="99,3 V"
-                            android:textSize="40dp" />
+                            android:textSize="30dp" />
 
                     </LinearLayout>
                     <LinearLayout
@@ -159,7 +158,7 @@
                             android:layout_marginRight="25dp"
                             android:gravity="center"
                             android:text="SOH"
-                            android:textSize="40dp" />
+                            android:textSize="30dp" />
 
                         <TextView
                             android:id="@+id/txtSoh"
@@ -168,7 +167,7 @@
                             android:gravity="center"
                             android:paddingLeft="20dp"
                             android:text="100%"
-                            android:textSize="40dp" />
+                            android:textSize="30dp" />
 
                     </LinearLayout>
 
@@ -200,8 +199,8 @@
 
                         <com.mikhaellopez.circularprogressbar.CircularProgressBar
                             android:id="@+id/circularProgressBar"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
                             android:layout_gravity="center"
                             android:layout_centerHorizontal="true"/>
 
@@ -209,10 +208,10 @@
                             android:id="@+id/txtBatteryLife"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:paddingTop="45dp"
-                            android:textSize="40dp"
                             android:gravity="top|center"
-                            android:text=""/>
+                            android:paddingTop="45dp"
+                            android:text=""
+                            android:textSize="40dp" />
                     </RelativeLayout>
 
                 </LinearLayout>
@@ -225,43 +224,72 @@
         </LinearLayout>
         <LinearLayout
             android:layout_weight="1"
-            android:layout_height="fill_parent"
+            android:layout_height="match_parent"
+            android:weightSum="2"
+            android:orientation="vertical"
             android:layout_width="0dp">
-
-            <LinearLayout android:orientation="vertical"
-                android:layout_height="fill_parent"
-                android:layout_width="fill_parent"
-                tools:ignore="MissingConstraints">
-
-                <androidx.constraintlayout.widget.ConstraintLayout
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="0.56"
+                android:gravity="center"
+                android:orientation="horizontal">
+                <ImageButton
+                    android:id="@+id/abrirRadioApp"
+                    android:src="@drawable/ic_radio_icon"
+                    android:background="@drawable/roundcorner_image_buttons"
+                    android:layout_width="60dp"
+                    android:layout_margin="10dp"
+                    android:layout_height="60dp"/>
+                <ImageButton
+                    android:id="@+id/abrirWifiApp"
+                    android:src="@drawable/ic_signal_wifi_4_bar_black_24dp"
+                    android:background="@drawable/roundcorner_image_buttons"
+                    android:layout_width="60dp"
+                    android:layout_margin="10dp"
+                    android:layout_height="60dp"/>
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_weight="1.44"
+                android:layout_height="0dp"
+                android:gravity="top"
+                android:layout_width="match_parent">
+                <LinearLayout
                     android:id="@+id/layoutSquareBattery"
-                    android:layout_marginTop="210dp"
+                    android:layout_width="match_parent"
                     android:layout_height="500dp"
-                    android:orientation="vertical"
-                    android:backgroundTint="@color/colorSquareNight"
-                    android:background="@drawable/ic_square"
-                    android:layout_width="fill_parent">
-
-                    <LinearLayout
-                        android:id="@+id/layoutCurrent"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="160dp"
-                        android:layout_marginRight="80px"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        android:orientation="horizontal">
-                        <com.github.mikephil.charting.charts.LineChart
-                            android:id="@+id/chartCorriente"
-                            android:layout_width="250dp"
-                            android:layout_height="320dp"
-                            android:layout_marginBottom="150dp"/>
-
-                    </LinearLayout>
-                </androidx.constraintlayout.widget.ConstraintLayout>
-
+                    android:padding="30dp"
+                    android:orientation="horizontal">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
+                            <com.mikhaellopez.circularprogressbar.CircularProgressBar
+                                android:id="@+id/circularProgressBarCorriente"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginRight="50dp"
+                                android:layout_gravity="center"
+                                android:layout_centerHorizontal="true"/>
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent">
+                            <TextView
+                                android:id="@+id/txtCurrent"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:textSize="25dp"
+                                android:layout_marginRight="50dp"
+                                android:text=""/>
+                        </LinearLayout>
+                    </RelativeLayout>
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

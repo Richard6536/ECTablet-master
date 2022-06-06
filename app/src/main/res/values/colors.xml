@@ -10,6 +10,42 @@
     <color name="colorSquareNight">#2F3A40</color><!--#303030-->
     <color name="colorSquareDay">#DADADA</color><!--#303030-->
 
+    <!--TEMA VERDE NIGHT-->
+    <color name="colorPrimaryGreenNight">#05672E</color><!--#303030-->
+    <color name="colorPrimaryDividerGreenNight">#5AAF7E</color><!--#303030-->
+    <color name="colorPrimaryTextGreenNight">#FFFFFF</color><!--#303030-->
+    <color name="colorPrimaryDayWavesGreenNight">#055125</color><!--#303030-->
+
+    <!--TEMA VERDE DAY-->
+    <color name="colorPrimaryGreenDay">#5AAF7E</color><!--#303030-->
+    <color name="colorPrimaryDividerGreenDay">#C1E8D1</color><!--#303030-->
+    <color name="colorPrimaryTextGreenDay">#022511</color><!--#303030-->
+    <color name="colorPrimaryDayWavesGreenDay">#408E61</color><!--#303030-->
+
+    <!--TEMA CELESTE NIGHT-->
+    <color name="colorPrimaryCelesteNight">#0091EA</color><!--#303030-->
+    <color name="colorPrimaryDividerCelesteNight">#1A74AC</color><!--#303030-->
+    <color name="colorPrimaryTextCelesteNight">#FFFFFF</color><!--#303030-->
+    <color name="colorPrimaryDayWavesCelesteNight">#1A74AC</color><!--#303030-->
+
+    <!--TEMA CELESTE DAY-->
+    <color name="colorPrimaryCelesteDay">#00B8D4</color><!--#303030-->
+    <color name="colorPrimaryDividerCelesteDay">#138191</color><!--#303030-->
+    <color name="colorPrimaryTextCelesteDay">#1B1A1A</color><!--#303030-->
+    <color name="colorPrimaryDayWavesCelesteDay">#138191</color><!--#303030-->
+
+    <!--TEMA ROSA NIGHT-->
+    <color name="colorPrimaryRosaNight">#C51162</color><!--#303030-->
+    <color name="colorPrimaryDividerRosaNight">#E14D90</color><!--#303030-->
+    <color name="colorPrimaryTextRosaNight">#FFFFFF</color><!--#303030-->
+    <color name="colorPrimaryDayWavesRosaNight">#972E5D</color><!--#303030-->
+
+    <!--TEMA ROSA DAY-->
+    <color name="colorPrimaryRosaDay">#F675AF</color><!--#303030-->
+    <color name="colorPrimaryDividerRosaDay">#EA6AA3</color><!--#303030-->
+    <color name="colorPrimaryTextRosaDay">#3E0820</color><!--#303030-->
+    <color name="colorPrimaryDayWavesRosaDay">#DC5592</color><!--#303030-->
+
     <color name="colorPrimaryTransparent">#DD273036</color><!--#303030-->
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>

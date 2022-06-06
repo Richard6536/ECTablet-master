@@ -42,12 +42,46 @@ public class SessionManager {
 
     public static final String KEY_POINTS = "points";
     public static final String KEY_THEME = "theme";
+    public static final String KEY_THEME_LIST = "0";
+    public static final String KEY_KM = "0";
+    public static final String KEY_KM_TOTAL = "0";
 
     public SessionManager(Context context)
     {
         this._context = context;
         pref = _context.getSharedPreferences(PREFER_NAME, PRIVATE_MODE);
         editor = pref.edit();
+    }
+
+    public void saveThemeList(int themeList){
+        editor.putString(KEY_THEME_LIST, themeList + "");
+        editor.commit();
+    }
+
+    public HashMap<String, String> getThemeList()
+    {
+        HashMap<String, String> points = new HashMap<String, String>();
+        points.put(KEY_THEME_LIST, pref.getString(KEY_THEME_LIST, "0"));
+        return points;
+    }
+
+    public void saveKM(int km, int kmTotal){
+        editor.putString(KEY_KM, km+"");
+        editor.putString(KEY_KM_TOTAL, kmTotal+"");
+        editor.commit();
+    }
+
+    public void reiniciarKM(int km){
+        editor.putString(KEY_KM, km+"");
+        editor.commit();
+    }
+
+    public HashMap<String, String> getKM()
+    {
+        HashMap<String, String> points = new HashMap<String, String>();
+        points.put(KEY_KM, pref.getString(KEY_KM, "0"));
+        points.put(KEY_KM_TOTAL, pref.getString(KEY_KM_TOTAL, "0"));
+        return points;
     }
 
     public void saveTheme(boolean themeNight){

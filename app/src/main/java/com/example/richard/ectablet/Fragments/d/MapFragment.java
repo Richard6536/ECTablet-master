@@ -161,7 +161,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public void onPause() {
         super.onPause();
         mapBoxBManager.GetMapView().onPause();
-
     }
 
     @Override
